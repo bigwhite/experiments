@@ -1,0 +1,133 @@
+%
+% TeX模板
+%
+% 中文支持方案: XeTeX + xeCJK
+% author: Tony Bai
+% 
+% compile: 
+%     xelatex book_utf8.tex
+%
+
+\documentclass[a4paper,11pt,titlepage]{book}                % 五号字
+
+%
+% preamble begin {
+%
+
+\usepackage{fontspec}
+\usepackage{xunicode} 
+\usepackage{xltxtra}                                        % xltxtra include the cmd \XeTeX
+
+\XeTeXlinebreaklocale "zh"
+\XeTeXlinebreakskip = 0pt plus 1pt minus 0.1pt
+
+\usepackage{titletoc}                                       % 控制目录
+\usepackage{appendix}                                       % 控制附录
+
+\usepackage[colorlinks,
+            linkcolor=black,
+            citecolor=black]{hyperref}                      % \url
+
+% 页边距设置
+\usepackage[top=1.2in,bottom=1.2in,left=1.2in,right=1in]{geometry}
+
+% 封面设置
+\title{\XeTeX\ 日常使用模板}
+\author{著：Tony Bai\\
+        译：Tony Bai\footnote{\url{http://bigwhite.blogbus.com}}}
+\date{October, 2010}
+
+% 页眉页脚设置
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}                                                  % 清空页眉页脚
+\fancyhead[LE,RO]{\thepage}                                 % 偶数页左,奇数页右
+\fancyhead[RE]{\leftmark}                                   % 偶数页右
+\fancyhead[LO]{\rightmark}                                  % 奇数页左
+\fancypagestyle{plain}{
+\fancyhf{}                                                  % 重定义plain页面样式
+\renewcommand{\headrulewidth}{0pt}
+}
+\renewcommand\chaptermark[1]{\markboth{\chaptername~ #1}{}}
+\renewcommand\sectionmark[1]{\markright{\thesection~ #1}}
+
+% 行距
+\renewcommand{\baselinestretch}{1.25}
+
+% 章节设置
+\usepackage{titlesec} 
+\titleformat{\chapter}{\centering\huge}{第\thechapter{}章}{1em}{\textbf}
+
+% xeCJK设置
+\usepackage[slantfont, boldfont, CJKaddspaces]{xeCJK}
+
+% view the font list through the cmd "fc-list :lang=en"
+\setmainfont{Times New Roman}                               % for normal and italic en
+\setsansfont{Arial}
+\setmonofont{Courier New}
+
+% view the font list through the cmd "fc-list :lang=zh"
+\setCJKmainfont{WenQuanYi Micro Hei}
+\setCJKsansfont{WenQuanYi Micro Hei}
+\setCJKmonofont{WenQuanYi Micro Hei}
+%\setCJKfamilyfont{song}{WenQuanYi Micro Hei}
+
+% 重定义设置
+\renewcommand{\chaptername}{第{\thechapter}章}
+\renewcommand{\contentsname}{目~录}
+\renewcommand{\indexname}{索引}
+\renewcommand{\listfigurename}{插图目录}
+\renewcommand{\listtablename}{表格目录}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\renewcommand{\appendixname}{附录}
+\renewcommand{\appendixpagename}{附录}
+\renewcommand{\appendixtocname}{附录}
+%\renewcommand\refname{参考文献}
+
+\usepackage[fleqn]{amsmath}                                 % 公式居左
+\usepackage{listings}                                       % 用于在文档中插入源代码
+
+\lstset{ language={[ANSI]C},
+         showspaces=false,
+         showtabs=false,
+         tabsize=4,
+         frame=single,
+         framerule=1pt,
+         framexleftmargin=5mm,
+         framexrightmargin=5mm,
+         framextopmargin=5mm,
+         framexbottommargin=5mm,
+         %numbers=left,
+         %numberstyle=\small,
+         basicstyle=\tt,
+         directivestyle=\tt,
+         identifierstyle=\tt,
+         commentstyle=\tt,
+         stringstyle=\tt,
+         keywordstyle=\color{blue}\tt }
+%
+% } preamble end
+%
+
+
+%
+% body begin {
+%
+
+\begin{document}
+
+\maketitle                                                  % 生成title
+
+\include{preface_utf8}                                      % 序言
+
+\tableofcontents                                            % 生成目录
+\setcounter{tocdepth}{3}                                    % 设置目录深度
+
+\include{introduction_utf8}                                 % 第一章 导 言
+
+\end{document}
+
+%
+% } body end
+%

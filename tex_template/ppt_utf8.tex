@@ -1,0 +1,127 @@
+%
+% PPT TeX模板
+%
+% 中文支持方案: XeTeX + xeCJK
+% author: Tony Bai
+% 
+% compile: 
+%     xelatex ppt_gbk.tex
+%
+
+\documentclass{beamer}
+
+%\XeTeXinputencoding "GBK"
+
+\usepackage{fontspec}                           % for XeTeX
+\usepackage{xunicode}
+\usepackage{xltxtra}
+
+%\usepackage{beamerthemesplit}
+\usepackage{hyperref}
+\usepackage{listings}
+
+\lstset{ language={[ANSI]C},
+         showspaces=false,
+         showtabs=false,
+         tabsize=4,
+         frame=single,
+         %framerule=1pt,
+         framexleftmargin=5mm,
+         framexrightmargin=5mm,
+         framextopmargin=5mm,
+         framexbottommargin=5mm,
+         %numbers=left,
+         %numberstyle=\small,
+         basicstyle=\tt\tiny,
+         directivestyle=\tt\tiny,
+         identifierstyle=\tt\tiny,
+         commentstyle=\tt\tiny,
+         stringstyle=\tt\tiny,
+         keywordstyle=\color{blue}\tt\tiny }
+
+% xeCJK设置
+\usepackage[slantfont, boldfont, CJKaddspaces]{xeCJK}
+
+% view the font list through the cmd "fc-list :lang=en"
+\setmainfont{Times New Roman}                               % for normal and italic en
+\setsansfont{Arial}
+\setmonofont{Courier New}
+
+% view the font list through the cmd "fc-list :lang=zh"
+\setCJKmainfont{WenQuanYi Micro Hei}
+\setCJKsansfont{WenQuanYi Micro Hei}
+\setCJKmonofont{WenQuanYi Micro Hei}
+%\setCJKfamilyfont{song}{WenQuanYi Micro Hei}
+
+\XeTeXlinebreaklocale "zh"  
+\XeTeXlinebreakskip = 0pt plus 1pt
+
+\usetheme{boxes}
+
+\title{\XeTeX~PPT模板}
+\author{Tony Bai \footnote{\url{http://bigwhite.blogbus.com}}}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}
+\frametitle{Outline}
+\tableofcontents
+\end{frame}
+
+\begin{frame}
+\frametitle{first frame}
+\framesubtitle{usage of itemize}
+    This is the first frame using \XeTeX~and beamer.
+    \begin{itemize}
+        \item<1-> xx
+        \item<2-> yy
+        \item<3-> zz
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{second frame}
+\framesubtitle{usage of enumerate}
+    This is the second frame.
+    \begin{enumerate}
+        \item<1-> xx
+        \item<2-> yy
+        \item<3-> zz
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}
+\frametitle{third frame}
+\framesubtitle{usage of block}
+    This is the third frame.
+    \begin{block}{Advantage}
+        The obvious disadvantage of this approach is that you have to know LaTeX in order to use Beamer. 
+    \end{block}
+    \begin{block}{disadvantage}
+        The advantage is that if you know LaTeX, you can use your knowledge of LaTeX also when creating a presentation, not only when writing papers.
+    \end{block}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{fourth frame}
+\framesubtitle{在ppt中插入源代码}
+\begin{center}
+\begin{lstlisting}[caption={An Example}]
+    int a[10] = {[0] = 1, [4] = 14, [7] = 17};
+    struct foo_struct s = {.a = 13, .b = "hello"};
+    struct foo_struct fa[3] = {[0] = {.a = 12,
+                                      .b= "hello", 
+                                      .c = 1.4},
+                               [2] = {.a = 13, 
+                                      .b = "world"}
+                              };
+\end{lstlisting}
+\end{center}
+\end{frame}
+
+\end{document}

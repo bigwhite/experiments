@@ -1,0 +1,242 @@
+"
+" .vimrc
+"
+" version: 0.1 2010-08-21
+" maintainer: tony_bai (http://bigwhite.blogbus.com)
+"
+" ref: http://amix.dk/vim/vimrc.txt
+" 
+
+"""""""""""""""""
+"" => General  
+"""""""""""""""""
+function! MySys()
+    return "linux"
+endfunction
+
+function! CurDir()
+    let curdir = substitute(getcwd(), '/Users/tonybai/', "~/", "g")
+    return curdir
+endfunction
+
+set nocompatible
+"set path=PATH1,PATH2,...
+
+" Sets how many lines of history VIM has to remember
+set history=300
+
+" Enable filetype plugin
+filetype plugin on
+filetype indent on "help indent-expression
+
+" Set to auto read when a file is changed from the outside
+"set autoread
+
+" it seems to be a trick when we use map leader!
+" With a map leader it's possible to do extra key combinations
+" like <leader>w saves the current file
+"
+" :help mapleader
+let mapleader = ","
+let g:mapleader = ","
+
+" Fast saving
+nmap <leader>w :w!<cr>
+
+" Fast editing of the .vimrc
+map <leader>e :e! ~/.vim_runtime/vimrc<cr>
+
+" When *vimrc* is edited, reload it
+autocmd! bufwritepost *vimrc* source ~/.vimrc
+
+" Set backspace config
+set backspace=eol,start,indent
+set whichwrap+=<,>,h,l
+
+set hlsearch "Highlight search things
+set incsearch "Make search act like search in modern browsers
+
+set showmatch "Show matching bracets when text indicator is over them
+set mat=2 "How many tenths of a second to blink
+
+" No sound on errors
+set noerrorbells
+set novisualbell
+set t_vb=
+
+source $VIMRUNTIME/ftplugin/man.vim
+
+" 自动识别文件的编码格式
+set fileencodings=UTF-8,GBK,gb18030,ucs-bom,cp936
+" 标识源文件中的数据的内码格式
+set fileencoding=GBK
+" 标识vim buffer中的数据编码格式
+set encoding=UTF-8
+
+set splitright 
+
+"""""""""""""""""
+"" => Colors and fonts
+"""""""""""""""""
+syntax enable "Enable syntax hl
+
+" Set font according to system
+if MySys() == "mac"
+  set gfn=Bitstream\ Vera\ Sans\ Mono:h13
+  set shell=/bin/bash
+elseif MySys() == "windows"
+  set gfn=Bitstream\ Vera\ Sans\ Mono:h10
+elseif MySys() == "linux"
+  set gfn=WenQuanYi\ Micro\ Hei\ Mono\10 "Monospace\ 10
+  set shell=/bin/bash
+endif
+
+set gfn=WenQuanYi\ Micro\ Hei\ Mono\ 11
+set shell=/bin/bash
+
+
+if has("gui_running")
+  set guioptions-=T
+  set background=dark
+  set t_Co=256
+  set background=dark
+  "colorscheme peaksea
+  colorscheme evening
+
+  "set nu
+else
+  colorscheme zellner
+  set background=dark
+  
+  set nonu
+endif
+
+set ffs=unix,dos,mac "Default file types
+
+"""""""""""""
+" => Files and backups
+"""""""""""""
+" Turn backup off, since most stuff is in SVN, git anyway...
+set nobackup
+set nowb
+set noswapfile
+
+
+"""""""""""""
+" => Text, tab and indent related
+"""""""""""""
+set expandtab
+set shiftwidth=4
+set tabstop=4
+"set smarttab
+
+set lbr
+set textwidth=788
+
+"set ai "Auto indent
+"set si "Smart indet
+set wrap "Wrap lines
+
+map <leader>t2 :setlocal shiftwidth=2<cr>
+map <leader>t4 :setlocal shiftwidth=4<cr>
+map <leader>t8 :setlocal shiftwidth=4<cr>
+
+""""""""""""""""
+" => Command mode related
+""""""""""""""""
+" Smart mappings on the command line
+cno $h e ~/
+cno $d e ~/Desktop/
+cno $j e ./
+
+" Bash like keys for the command line
+cnoremap <C-A>		<Home>
+cnoremap <C-E>		<End>
+cnoremap <C-K>		<C-U>
+cnoremap <C-P>      <Up>
+cnoremap <C-N>      <Down>
+
+""""""""""""
+" => Moving around, tabs and buffers
+""""""""""""
+" Map space to / (search) and c-space to ? (backgwards search)
+map <space> /
+map <c-space> ?
+
+""""""""""""""""""""""""""""""
+" => Statusline
+""""""""""""""""""""""""""""""
+" Always hide the statusline
+set laststatus=2
+
+" Format the statusline
+"set statusline=\ %F%m%r%h\ %w\ \ CWD:\ %r%{CurDir()}%h\ \ \ Line:\ %l/%L:%c
+
+""""""""""""""""""""""""""""
+" => Parenthesis/bracket expanding
+""""""""""""""""""""""""""""
+vnoremap $1 <esc>`>a)<esc>`<i(<esc>
+vnoremap $2 <esc>`>a]<esc>`<i[<esc>
+vnoremap $3 <esc>`>a}<esc>`<i{<esc>
+vnoremap $$ <esc>`>a"<esc>`<i"<esc>
+vnoremap $q <esc>`>a'<esc>`<i'<esc>
+vnoremap $e <esc>`>a"<esc>`<i"<esc>
+
+" Map auto complete of (, ", ', [
+inoremap $1 ()<esc>i
+inoremap $2 []<esc>i
+inoremap $3 {}<esc>i
+inoremap $4 {<esc>o}<esc>O
+inoremap $q ''<esc>i
+inoremap $e ""<esc>i
+
+""""""""""
+" => text format (c source)
+"""""""""
+autocmd BufNewFile,BufRead *[.h|.c] set formatprg=astyle
+map <S-F> <Esc>:%! astyle<CR>
+
+""""""""""
+" => TagList plugin
+" http://www.vim.org/scripts/script.php?script_id=273
+"""""""""
+nmap <leader>tl :TlistToggle<CR>
+
+""""""""""
+" => NERDTree plugin
+" http://www.vim.org/scripts/script.php?script_id=1658
+"""""""""
+nmap <leader>tn :NERDTreeToggle<CR>
+
+""""""""""
+" => Cscope plugin
+" http://cscope.sourceforge.net/cscope_maps.vim
+"""""""""
+set cscopequickfix=s-,c-,d-,i-,t-,e-"
+if has("cscope")
+    if filereadable("cscope.out")
+        cscope add cscope.out
+    endif
+endif
+
+""""""""""
+" => Minibuffer plugin
+" http://www.vim.org/scripts/script.php?script_id=159
+"""""""""
+let g:miniBufExplModSelTarget = 1
+let g:miniBufExplorerMoreThanOne = 2
+let g:miniBufExplModSelTarget = 0
+let g:miniBufExplUseSingleClick = 1
+let g:miniBufExplMapWindowNavVim = 1
+"let g:miniBufExplVSplit = 25
+"let g:miniBufExplSplitBelow=1
+let g:bufExplorerSortBy = "name"
+autocmd BufRead,BufNew :call UMiniBufExplorer
+map <leader>u :TMiniBufExplorer<cr>:TMiniBufExplorer<cr>
+
+""""""""""
+" => BufExplorer plugin
+" http://www.vim.org/scripts/script.php?script_id=42
+"""""""""
+"let g:bufExplorerDefaultHelp=0
+"let g:bufExplorerShowRelativePath=1

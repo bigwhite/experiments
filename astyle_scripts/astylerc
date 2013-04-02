@@ -1,0 +1,17 @@
+# bigwhite's astyle options file
+
+--indent=spaces=4
+--brackets=attach
+# --brackets=linux
+--indent-switches
+--indent-cases
+--indent-preprocessor
+--indent-col1-comments
+--pad-oper
+--pad-header
+--unpad-paren
+--add-brackets
+--keep-one-line-statements
+--align-pointer=name
+--mode=c
+--min-conditional-indent=0
