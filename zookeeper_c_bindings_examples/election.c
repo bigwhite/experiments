@@ -10,7 +10,7 @@ struct watch_func_para_t {
 };
 
 static int 
-isLeader(zhandle_t* zkhandle, char *myid);
+is_leader(zhandle_t* zkhandle, char *myid);
 
 static void 
 get_node_name(const char *buf, char *node);
@@ -64,7 +64,7 @@ election_children_watcher(zhandle_t* zh, int type, int state,
         exit(EXIT_FAILURE);
     }
 
-    if (isLeader(para->zkhandle, para->node))
+    if (is_leader(para->zkhandle, para->node))
         printf("This is [%s], i am a leader\n", para->node);
     else
         printf("This is [%s], i am a follower\n", para->node);
@@ -84,7 +84,7 @@ void def_election_watcher(zhandle_t* zh, int type, int state,
 
 
 int 
-isLeader( zhandle_t* zkhandle, char *myid) 
+is_leader( zhandle_t* zkhandle, char *myid) 
 {
     int ret = 0;
     int flag = 1;
@@ -140,7 +140,7 @@ main(int argc, const char *argv[])
     }
 
     get_node_name(buf, node);
-    if (isLeader(zkhandle, node)) {
+    if (is_leader(zkhandle, node)) {
         printf("This is [%s], i am a leader\n", node);
     } else {
         printf("This is [%s], i am a follower\n", node);
