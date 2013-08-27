@@ -3,49 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <time.h>
 #include "zookeeper.h"
 
-bool i_am_leader = false;
-int64_t startup_time_stamp = 0;
-
-struct watch_func_para_t {
-    zhandle_t *zkhandle;
-    char node[64];
-};
-
-static void zktest_dump_stat(const struct Stat *stat)
-{
-    char tctimes[40];
-    char tmtimes[40];
-    time_t tctime;
-    time_t tmtime;
-
-    if (!stat) {
-        fprintf(stderr,"null\n");
-        return;
-    }
-    tctime = stat->ctime/1000;
-    tmtime = stat->mtime/1000;
-
-    ctime_r(&tmtime, tmtimes);
-    ctime_r(&tctime, tctimes);
-
-    fprintf(stderr, "ctime = [%ld]\n", tctime);
-    fprintf(stderr, "\tctime = %s\tczxid=%llx\n"
-            "\tmtime=%s\tmzxid=%llx\n"
-            "\tversion=%x\taversion=%x\n"
-            "\tephemeralOwner = %llx\n",
-            tctimes, stat->czxid,
-            tmtimes, stat->mzxid,
-            (unsigned int)stat->version, (unsigned int)stat->aversion,
-            stat->ephemeralOwner);
-}
-
-static int 
-is_leader(zhandle_t* zkhandle, char *myid);
-
-static void 
-get_node_name(const char *buf, char *node);
+time_t startup_time_stamp = 0;
 
 static int
 add_children_watch_on(zhandle_t *zh, const char *path, watcher_fn watcher, void *watcherCtx) 
@@ -58,7 +19,6 @@ add_children_watch_on(zhandle_t *zh, const char *path, watcher_fn watcher, void 
     if (ret) {
         fprintf(stderr, "zoo_wget_children2 error [%d]\n", ret);
     }
-    zktest_dump_stat(&stat);
     return ret;
 }
 
@@ -73,12 +33,7 @@ ccs_children_watcher(zhandle_t* zh, int type, int state,
                       const char* path, void* watcherCtx)
 {
     
-    printf("\n\n");
-    printf("children event happened =====>\n");
-    printf("children event: node [%s] \n", path);
-    printf("children event: state [%d]\n", state);
-    printf("children event: type[%d]\n", type);
-    printf("children event done  <=====\n");
+    printf("child event happened: type[%d]\n", type);
 
     /*
     struct Stat {
@@ -107,10 +62,10 @@ ccs_children_watcher(zhandle_t* zh, int type, int state,
         fprintf(stderr, "child: zoo_wget_children2 error [%d]\n", ret);
         return;
     }
-    zktest_dump_stat(&stat);
 
     if (strings.count == 0) return;
 
+    /* only care child event */
     if (type != ZOO_CHILD_EVENT) return;
 
     /* routine for item creating */
@@ -131,22 +86,35 @@ ccs_children_watcher(zhandle_t* zh, int type, int state,
         puts(p[i]);
     }
 
+    for (int i = 0;  i < strings.count; i++) {
+        char path[128] = {0};
+        char value[128] = {0};
+        int value_len = sizeof(value);
+        struct Stat item_stat;
+        sprintf(path, "/ccs/employee_info_tab/%s", p[i]);
+        
+        if (strcmp(p[i], cur_id) <= 0) {
+            printf("employee_info_tab: skip [%s]\n", p[i]);
+            continue;
+        };
 
+        ret = zoo_get(zh, path, 0, value, &value_len, &item_stat); 
+        if (ret != 0) {
+            fprintf(stderr, "child: zoo_get error\n");
+            continue;
+        }
+
+        if ((item_stat.ctime/1000) > startup_time_stamp) {
+            printf("employee_info_tab: execute [%s]\n", value);
+            strcpy(cur_id, p[i]);
+        } else {
+            printf("employee_info_tab: skip [%s]\n", value);
+        }
+    }
 
 
     return;
 }
-
-void def_ccs_watcher(zhandle_t* zh, int type, int state,
-        const char* path, void* watcherCtx)
-{
-    printf("Something happened.\n");
-    printf("type: %d\n", type);
-    printf("state: %d\n", state);
-    printf("path: %s\n", path);
-    printf("watcherCtx: %s\n", (char *)watcherCtx);
-}
-
 
 int 
 main(int argc, const char *argv[])
@@ -156,9 +124,11 @@ main(int argc, const char *argv[])
     int timeout = 5000;
     char node[512] = {0};
     char cur_id[64] = "item-";
+
+    (void)time(&startup_time_stamp);
     
     zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
-    zkhandle = zookeeper_init(host, def_ccs_watcher, timeout, 
+    zkhandle = zookeeper_init(host, NULL, timeout, 
                               0, "Zookeeper examples: config center services", 0);
     if (zkhandle == NULL) {
         fprintf(stderr, "Connecting to zookeeper servers error...\n");
@@ -176,17 +146,3 @@ main(int argc, const char *argv[])
     zookeeper_close(zkhandle);
 }
 
-static void 
-get_node_name(const char *buf, char *node) 
-{
-    const char *p = buf;
-    int i;
-    for (i = strlen(buf) - 1; i >= 0; i--) {
-        if (*(p + i) == '/') {
-            break;
-        }
-    }
-
-    strcpy(node, p + i + 1);
-    return;
-}
