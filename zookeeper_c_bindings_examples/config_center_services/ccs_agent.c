@@ -27,11 +27,7 @@ ccs_children_watcher(zhandle_t* zh, int type, int state,
                       const char* path, void* watcherCtx)
 {
     printf("\n\n");
-    printf("children event happened =====>\n");
-    printf("children event: node [%s] \n", path);
-    printf("children event: state [%d]\n", state);
-    printf("children event: type[%d]\n", type);
-    printf("children event done  <=====\n");
+    printf("children event happened: type[%d]\n", type);
 
     int ret = 0;
 
@@ -55,17 +51,6 @@ ccs_children_watcher(zhandle_t* zh, int type, int state,
 
     return;
 }
-
-void def_ccs_watcher(zhandle_t* zh, int type, int state,
-        const char* path, void* watcherCtx)
-{
-    printf("Something happened.\n");
-    printf("type: %d\n", type);
-    printf("state: %d\n", state);
-    printf("path: %s\n", path);
-    printf("watcherCtx: %s\n", (char *)watcherCtx);
-}
-
 
 static int 
 is_leader(zhandle_t* zkhandle, char *myid) 
@@ -224,7 +209,6 @@ trigger_listen_thread(void *arg)
             close(cli_sock);
             continue;
         }
-        printf("recv buf[%s]\n", buf);
 
         ret = parse_trigger_pkg(buf, num, table, oper_type, id);
         if (ret != 0) {
@@ -261,14 +245,48 @@ item_expire_thread(void *arg)
 {
     zhandle_t* zkhandle = (zhandle_t*)arg;
     int timeout = 30;
+    struct String_vector strings;
+    int ret;
+    time_t now;
+
     fprintf(stderr, "item expire thread start up!\n");
 
     while(1) {
         if (i_am_leader) {
             /* clear the expired items */
+            ret = zoo_get_children(zkhandle, "/ccs/employee_info_tab", 0,
+                                   &strings);
+            if (ret != 0) {
+                fprintf(stderr, "zoo_get_children error [%d]\n", ret);
+            }
+            time(&now);
 
-            /* table: employee_info_tab */
+            for (int i = 0; i < strings.count; i++) {
+                char path[128];
+                memset(path, 0, sizeof(path));
+                char value[128] = {0};
+                int value_len = sizeof(value);
+                struct Stat item_stat;
 
+                sprintf(path, "/ccs/employee_info_tab/%s", strings.data[i]);
+                ret = zoo_get(zkhandle, path, 0, value, &value_len, &item_stat);
+                if (ret != 0) {
+                    fprintf(stderr, "zoo_get error [%d]\n", ret);
+                    continue;
+                }
+
+                if ((item_stat.ctime/1000) < now - 30) {
+                    ret = zoo_delete(zkhandle, path, -1);
+                    if (ret != 0) {
+                        fprintf(stderr, "zoo_delete error [%d]\n", ret);
+                        continue;
+                    }
+                    printf("[expire]: employee_info_tab: expire [%s]\n", strings.data[i]);
+                } else {
+                    printf("[expire]: employee_info_tab: skip [%s]\n", strings.data[i]);
+                }
+
+            }
         } 
         sleep(timeout);
     }
@@ -325,6 +343,21 @@ create_tables(zhandle_t *zkhandle, char p[][64], int count)
     return ret;
 }
 
+static void 
+get_node_name(const char *buf, char *node) 
+{
+    const char *p = buf;
+    int i;
+    for (i = strlen(buf) - 1; i >= 0; i--) {
+        if (*(p + i) == '/') {
+            break;
+        }
+    }
+
+    strcpy(node, p + i + 1);
+    return;
+}
+
 int 
 main(int argc, const char *argv[])
 {
@@ -338,7 +371,7 @@ main(int argc, const char *argv[])
     };
     
     zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
-    zkhandle = zookeeper_init(host, def_ccs_watcher, timeout, 
+    zkhandle = zookeeper_init(host, NULL, timeout, 
                               0, "Zookeeper examples: config center services", 0);
     if (zkhandle == NULL) {
         fprintf(stderr, "Connecting to zookeeper servers error...\n");
@@ -421,17 +454,3 @@ main(int argc, const char *argv[])
     zookeeper_close(zkhandle);
 }
 
-static void 
-get_node_name(const char *buf, char *node) 
-{
-    const char *p = buf;
-    int i;
-    for (i = strlen(buf) - 1; i >= 0; i--) {
-        if (*(p + i) == '/') {
-            break;
-        }
-    }
-
-    strcpy(node, p + i + 1);
-    return;
-}

@@ -112,6 +112,7 @@ ccs_children_watcher(zhandle_t* zh, int type, int state,
         }
     }
 
+    free(p);
 
     return;
 }
