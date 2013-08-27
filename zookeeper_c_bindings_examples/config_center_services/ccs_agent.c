@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include "zookeeper.h"
 
 bool i_am_leader = false;
@@ -93,7 +96,7 @@ is_leader(zhandle_t* zkhandle, char *myid)
 
 
 static 
-int join_the_election(zhandle_t *zkhandle, char node[]) 
+int join_the_election(zhandle_t *zkhandle, char node[], struct watch_func_para_t *para) 
 {
     char buf[512] = {0};
     int ret;
@@ -116,11 +119,10 @@ int join_the_election(zhandle_t *zkhandle, char node[])
     struct Stat stat;
     memset(&stat, 0, sizeof(stat));
     struct String_vector strings;
-    struct watch_func_para_t para;
-    memset(&para, 0, sizeof(para));
-    para.zkhandle = zkhandle;
-    strcpy(para.node, node);
-    ret = zoo_wget_children2(zkhandle, "/election", ccs_children_watcher, &para, &strings, &stat);
+    memset(para, 0, sizeof(*para));
+    para->zkhandle = zkhandle;
+    strcpy(para->node, node);
+    ret = zoo_wget_children2(zkhandle, "/election", ccs_children_watcher, para, &strings, &stat);
     if (ret) {
         fprintf(stderr, "zoo_wget_children2 error [%d]\n", ret);
         return ret;
@@ -129,17 +131,194 @@ int join_the_election(zhandle_t *zkhandle, char node[])
     return ret;
 }
 
+static void get_section();
+static int 
+parse_trigger_pkg(const char *buf, int buf_len, char table[], 
+                  char oper_type[], char id[])
+{
+    /*
+     * pkg format:
+     *   ^table_name|oper_type|id$
+     *
+     * oper_type: 
+     *   ADD/DEL/MOD/BAT
+     */
+
+    if (buf[0] != '^') return -1;
+    if (buf[buf_len-1] != '$') return -1;
+    int pos[2];
+
+    for (int i = 1, j = 0; i < buf_len; i++) {
+        if (buf[i] == '|') {
+            pos[j] = i;
+            j++;
+        }
+    }
+    
+    strncpy(table, &buf[1], pos[0] - 1);
+    strncpy(oper_type, &buf[pos[0]+1], pos[1] - pos[0] - 1);
+    strncpy(id, &buf[pos[1]+1], buf_len -1 - pos[1] -1);
+
+    return 0;
+}
 
 static void*
 trigger_listen_thread(void *arg)
 {
+    fprintf(stderr, "trigger listen thread start up!\n");
+    int ret;
+    zhandle_t* zkhandle = (zhandle_t*)arg;
+    int sock;
+    int cli_sock;
+    struct sockaddr_in sin ;
+    struct sockaddr_in cin;
+    socklen_t len = sizeof(struct sockaddr);
 
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0) {
+        fprintf(stderr, "socket error!\n");
+        return;
+    }
+
+    memset(&sin, 0, sizeof(sin));
+    sin.sin_family       = AF_INET;
+    sin.sin_port         = htons(8877);
+    sin.sin_addr.s_addr = INADDR_ANY;
+
+    ret = bind(sock, (struct sockaddr*)&sin, len);
+    if (ret < 0) {
+        close(sock);
+        fprintf(stderr, "socket bind error!\n");
+        return;
+    }
+
+    ret = listen(sock, 5);
+    if (ret < 0) {
+        close(sock);
+        fprintf(stderr, "socket listen error!\n");
+        return;
+    }
+
+    while (1) {
+        memset(&cin, 0, sizeof(cin));
+        cli_sock = accept(sock, (struct sockaddr*)&cin, &len);
+        if (cli_sock < 0) {
+            fprintf(stderr, "accept client socket error!\n");
+        }
+
+        /* recv and parse the trigger package */
+        char buf[512];
+        int num = 0;
+        char table[64];
+        char oper_type[64];
+        char id[64];
+        memset(buf, 0, sizeof(buf));
+        memset(table, 0, sizeof(table));
+        memset(oper_type, 0, sizeof(oper_type));
+        memset(id, 0, sizeof(id));
+
+        num = recv(cli_sock, buf, sizeof(buf), 0);
+        if (num < 0) {
+            fprintf(stderr, "recv client socket error");
+            close(cli_sock);
+            continue;
+        }
+
+        ret = parse_trigger_pkg(buf, num, table, oper_type, id);
+        if (ret != 0) {
+            fprintf(stderr, "parse trigger pkg error");
+            close(cli_sock);
+            continue;
+        }
+
+        /* create sequenced item on ccs */
+        char path[128] = {0};
+        sprintf(path, "/ccs/%s/item-", table);
+
+        ret = zoo_create(zkhandle,
+                path,
+                id,
+                strlen(id),
+                &ZOO_OPEN_ACL_UNSAFE,  /* a completely open ACL */
+                ZOO_SEQUENCE,
+                buf,
+                sizeof(buf)-1);
+        if (ret) {
+            fprintf(stderr, "zoo_create error [%d]\n", ret);
+        }
+
+        close(cli_sock);
+    }
 }
+
 
 static void*
 item_expire_thread(void *arg)
 {
+    zhandle_t* zkhandle = (zhandle_t*)arg;
+    int timeout = 30;
+    fprintf(stderr, "item expire thread start up!\n");
 
+    while(1) {
+        if (i_am_leader) {
+            /* clear the expired items */
+
+            /* table: employee_info_tab */
+
+        } 
+        sleep(timeout);
+    }
+
+}
+
+static int
+create_tables(zhandle_t *zkhandle, char p[][64], int count)
+{
+    int ret = 0;
+    char path[128];
+    char buf[128] = {0};
+
+    ret = zoo_create(zkhandle,
+                        "/ccs",
+                        "hello",
+                        5,
+                        &ZOO_OPEN_ACL_UNSAFE,  /* a completely open ACL */
+                        0,
+                        buf, 
+                        sizeof(buf)-1);
+    if (ret == ZNODEEXISTS) {
+        ret = 0;
+        fprintf(stderr, "/ccs node exists\n");
+    } else if (ret != 0) {
+        fprintf(stderr, "zoo_create error [%d]\n", ret);
+        return ret;
+    } else {
+        fprintf(stderr, "create [%s] ok\n", "/ccs");
+    } 
+
+    for (int i = 0; i < count; i++) {
+        memset(path, 0, sizeof(path));
+        sprintf(path, "/ccs/%s", p[i]);
+        ret = zoo_create(zkhandle,
+                            path,
+                            "hello", 
+                            5,
+                            &ZOO_OPEN_ACL_UNSAFE,  /* a completely open ACL */
+                            0,
+                            buf, 
+                            sizeof(buf)-1);
+        if (ret == ZNODEEXISTS) {
+            ret = 0;
+            fprintf(stderr, "%s node exists\n", path);
+        } else if (ret != 0) {
+            fprintf(stderr, "zoo_create error [%d]\n", ret);
+            return ret;
+        } else {
+            fprintf(stderr, "create [%s] ok\n", path);
+        } 
+    }
+
+    return ret;
 }
 
 int 
@@ -149,6 +328,10 @@ main(int argc, const char *argv[])
     zhandle_t* zkhandle;
     int timeout = 5000;
     char node[512] = {0};
+    char tables[][64] = {
+        {"employee_info_tab"},
+        {"boss_info_tab"}
+    };
     
     zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
     zkhandle = zookeeper_init(host, def_ccs_watcher, timeout, 
@@ -159,7 +342,8 @@ main(int argc, const char *argv[])
     }
 
     /* join the election group */
-    int ret = join_the_election(zkhandle, node);
+    struct watch_func_para_t para;
+    int ret = join_the_election(zkhandle, node, &para);
     if (zkhandle == NULL) {
         fprintf(stderr, "join the election error...\n");
         exit(EXIT_FAILURE);
@@ -169,6 +353,7 @@ main(int argc, const char *argv[])
     if (is_leader(zkhandle, node)) {
         i_am_leader = true;
         printf("This is [%s], i am a leader\n", node);
+        (void)create_tables(zkhandle, tables, sizeof(tables)/sizeof(tables[0]));
     } else {
         i_am_leader = false;
         printf("This is [%s], i am a follower\n", node);
