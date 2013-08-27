@@ -26,7 +26,6 @@ void
 ccs_children_watcher(zhandle_t* zh, int type, int state,
                       const char* path, void* watcherCtx)
 {
-    
     printf("\n\n");
     printf("children event happened =====>\n");
     printf("children event: node [%s] \n", path);
@@ -159,6 +158,8 @@ parse_trigger_pkg(const char *buf, int buf_len, char table[],
     strncpy(oper_type, &buf[pos[0]+1], pos[1] - pos[0] - 1);
     strncpy(id, &buf[pos[1]+1], buf_len -1 - pos[1] -1);
 
+    printf("table[%s], oper_type[%s], id[%s]\n", table, oper_type, id);
+
     return 0;
 }
 
@@ -223,6 +224,7 @@ trigger_listen_thread(void *arg)
             close(cli_sock);
             continue;
         }
+        printf("recv buf[%s]\n", buf);
 
         ret = parse_trigger_pkg(buf, num, table, oper_type, id);
         if (ret != 0) {
@@ -234,11 +236,13 @@ trigger_listen_thread(void *arg)
         /* create sequenced item on ccs */
         char path[128] = {0};
         sprintf(path, "/ccs/%s/item-", table);
+        char value[128] = {0};
+        sprintf(value, "%s %s", oper_type, id);
 
         ret = zoo_create(zkhandle,
                 path,
-                id,
-                strlen(id),
+                value,
+                strlen(value),
                 &ZOO_OPEN_ACL_UNSAFE,  /* a completely open ACL */
                 ZOO_SEQUENCE,
                 buf,

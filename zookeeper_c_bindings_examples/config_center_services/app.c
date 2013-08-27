@@ -2,12 +2,44 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include "zookeeper.h"
+
+bool i_am_leader = false;
+int64_t startup_time_stamp = 0;
 
 struct watch_func_para_t {
     zhandle_t *zkhandle;
     char node[64];
 };
+
+static void zktest_dump_stat(const struct Stat *stat)
+{
+    char tctimes[40];
+    char tmtimes[40];
+    time_t tctime;
+    time_t tmtime;
+
+    if (!stat) {
+        fprintf(stderr,"null\n");
+        return;
+    }
+    tctime = stat->ctime/1000;
+    tmtime = stat->mtime/1000;
+
+    ctime_r(&tmtime, tmtimes);
+    ctime_r(&tctime, tctimes);
+
+    fprintf(stderr, "ctime = [%ld]\n", tctime);
+    fprintf(stderr, "\tctime = %s\tczxid=%llx\n"
+            "\tmtime=%s\tmzxid=%llx\n"
+            "\tversion=%x\taversion=%x\n"
+            "\tephemeralOwner = %llx\n",
+            tctimes, stat->czxid,
+            tmtimes, stat->mzxid,
+            (unsigned int)stat->version, (unsigned int)stat->aversion,
+            stat->ephemeralOwner);
+}
 
 static int 
 is_leader(zhandle_t* zkhandle, char *myid);
@@ -15,33 +47,29 @@ is_leader(zhandle_t* zkhandle, char *myid);
 static void 
 get_node_name(const char *buf, char *node);
 
-void 
-election_parent_watcher(zhandle_t* zh, int type, int state,
-                        const char* path, void* watcherCtx)
+static int
+add_children_watch_on(zhandle_t *zh, const char *path, watcher_fn watcher, void *watcherCtx) 
 {
-    
-    printf("\n\n");
-    printf("event happened =====>\n");
-    printf("event: node [%s] \n", path);
-    printf("event: state [%d]\n", state);
-    printf("event: type[%d]\n", type);
-    printf("event done  <=====\n");
-
     int ret = 0;
 
-    zhandle_t *zkhandle = (zhandle_t*)watcherCtx;
+    struct String_vector strings;
     struct Stat stat;
-
-    ret = zoo_wexists(zkhandle, "/election", election_parent_watcher, watcherCtx, &stat);
+    ret = zoo_wget_children2(zh, path, watcher, watcherCtx, &strings, &stat);
     if (ret) {
-        fprintf(stderr, "Error %d for %s\n", ret, "wexists");
-        exit(EXIT_FAILURE);
+        fprintf(stderr, "zoo_wget_children2 error [%d]\n", ret);
     }
+    zktest_dump_stat(&stat);
+    return ret;
+}
 
+static int
+cmpid(const void *p1, const void *p2)
+{
+    return strcmp(* (char * const *) p1, * (char * const *) p2);
 }
 
 void 
-election_children_watcher(zhandle_t* zh, int type, int state,
+ccs_children_watcher(zhandle_t* zh, int type, int state,
                       const char* path, void* watcherCtx)
 {
     
@@ -52,27 +80,64 @@ election_children_watcher(zhandle_t* zh, int type, int state,
     printf("children event: type[%d]\n", type);
     printf("children event done  <=====\n");
 
-    int ret = 0;
+    /*
+    struct Stat {
+        int64_t czxid;
+        int64_t mzxid;
+        int64_t ctime; //use this
+        int64_t mtime;
+        int32_t version;
+        int32_t cversion;
+        int32_t aversion;
+        int64_t ephemeralOwner;
+        int32_t dataLength;
+        int32_t numChildren;
+        int64_t pzxid;
+    };
+    */
 
-    struct watch_func_para_t* para= (struct watch_func_para_t*)watcherCtx;
+
+    int ret = 0;
+    char *cur_id = (char*)watcherCtx;
 
     struct String_vector strings;
     struct Stat stat;
-    ret = zoo_wget_children2(para->zkhandle, "/election", election_children_watcher, watcherCtx, &strings, &stat);
+    ret = zoo_wget_children2(zh, "/ccs/employee_info_tab", ccs_children_watcher, watcherCtx, &strings, &stat);
     if (ret) {
         fprintf(stderr, "child: zoo_wget_children2 error [%d]\n", ret);
-        exit(EXIT_FAILURE);
+        return;
+    }
+    zktest_dump_stat(&stat);
+
+    if (strings.count == 0) return;
+
+    if (type != ZOO_CHILD_EVENT) return;
+
+    /* routine for item creating */
+    char* *p = NULL;
+    p = malloc(strings.count * sizeof(char*));
+    if (p == NULL) {
+        fprintf(stderr, "child: malloc error\n");
+        return;
+    }
+    memset(p, 0, strings.count * sizeof(char*));
+
+    for (int i = 0;  i < strings.count; i++) {
+        p[i] = strings.data[i];
+    }
+    qsort(&p[0], strings.count, sizeof(p[0]), cmpid);
+
+    for (int i = 0;  i < strings.count; i++) {
+        puts(p[i]);
     }
 
-    if (is_leader(para->zkhandle, para->node))
-        printf("This is [%s], i am a leader\n", para->node);
-    else
-        printf("This is [%s], i am a follower\n", para->node);
+
+
 
     return;
 }
 
-void def_election_watcher(zhandle_t* zh, int type, int state,
+void def_ccs_watcher(zhandle_t* zh, int type, int state,
         const char* path, void* watcherCtx)
 {
     printf("Something happened.\n");
@@ -83,90 +148,30 @@ void def_election_watcher(zhandle_t* zh, int type, int state,
 }
 
 
-static int 
-is_leader( zhandle_t* zkhandle, char *myid) 
-{
-    int ret = 0;
-    int flag = 1;
-
-    struct String_vector strings;
-    ret = zoo_get_children(zkhandle, "/election", 0, &strings);
-    if (ret) {
-        fprintf(stderr, "Error %d for %s\n", ret, "get_children");
-        exit(EXIT_FAILURE);
-    }
-
-    // printf("leader election ==>\n");
-    for (int i = 0;  i < strings.count; i++) {
-        // printf("[%s] vs [%s]\n", myid, strings.data[i]); 
-        if (strcmp(myid, strings.data[i]) > 0) {
-            flag = 0;
-            break; 
-        }
-    }
-    // printf("leader election end<==\n");
-
-    return flag;
-}
-
 int 
 main(int argc, const char *argv[])
 {
     const char* host = "127.0.0.1:2181";
     zhandle_t* zkhandle;
     int timeout = 5000;
-    char buf[512] = {0};
     char node[512] = {0};
+    char cur_id[64] = "item-";
     
     zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
-    zkhandle = zookeeper_init(host, def_election_watcher, timeout, 
-                              0, "Zookeeper examples: election", 0);
+    zkhandle = zookeeper_init(host, def_ccs_watcher, timeout, 
+                              0, "Zookeeper examples: config center services", 0);
     if (zkhandle == NULL) {
         fprintf(stderr, "Connecting to zookeeper servers error...\n");
         exit(EXIT_FAILURE);
     }
 
-    int ret = zoo_create(zkhandle,
-                        "/election/member", 
-                        "hello", 
-                        5,
-                        &ZOO_OPEN_ACL_UNSAFE,  /* a completely open ACL */
-                        ZOO_SEQUENCE|ZOO_EPHEMERAL,
-                        buf, 
-                        sizeof(buf)-1);
-    if (ret) {
-        fprintf(stderr, "zoo_create error [%d]\n", ret);
-        exit(EXIT_FAILURE);
-    }
-
-    get_node_name(buf, node);
-    if (is_leader(zkhandle, node)) {
-        printf("This is [%s], i am a leader\n", node);
-    } else {
-        printf("This is [%s], i am a follower\n", node);
-    }
-
-    struct Stat stat;
-    memset(&stat, 0, sizeof(stat));
-    ret = zoo_wexists(zkhandle, "/election", election_parent_watcher, zkhandle, &stat);
-    if (ret) {
-        fprintf(stderr, "zoo_wexists error [%d]\n", ret);
-        exit(EXIT_FAILURE);
-    }
-
-    struct String_vector strings;
-    struct watch_func_para_t para;
-    memset(&para, 0, sizeof(para));
-    para.zkhandle = zkhandle;
-    strcpy(para.node, node);
-    ret = zoo_wget_children2(zkhandle, "/election", election_children_watcher, &para, &strings, &stat);
+    int ret = add_children_watch_on(zkhandle, "/ccs/employee_info_tab", ccs_children_watcher, cur_id);
     if (ret) {
         fprintf(stderr, "zoo_wget_children2 error [%d]\n", ret);
         exit(EXIT_FAILURE);
     }
 
-    /* just wait for experiments*/
-    sleep(10000);
+    sleep(50000); // only for experiments
 
     zookeeper_close(zkhandle);
 }
