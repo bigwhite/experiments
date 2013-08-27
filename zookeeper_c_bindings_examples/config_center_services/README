@@ -1,0 +1,8 @@
+
+
+                  trigger pkg              operation                                                    notify
+trigger_sim.py ----------------> ccs_agent ----------> config center services(ccs, zookeeper cluster)  ---------> app
+
+
+
+
