@@ -83,7 +83,7 @@ void def_election_watcher(zhandle_t* zh, int type, int state,
 }
 
 
-int 
+static int 
 is_leader( zhandle_t* zkhandle, char *myid) 
 {
     int ret = 0;
