@@ -4,5 +4,12 @@
 trigger_sim.py ----------------> ccs_agent ----------> config center services(ccs, zookeeper cluster)  ---------> app
 
 
+steps:
 
-
+1. start zookeeper cluster
+2. start zkCli.sh and create /election and /ccs node
+3. start two ccs_agent on different host
+4. start two app on different host
+5. use trigger_sim.py to send package to ccs_agent
+    e.g. trigger_sim.py employee_info_tab ADD 1234
+6. watch the log of each program
