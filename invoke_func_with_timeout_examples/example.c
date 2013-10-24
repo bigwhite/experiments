@@ -11,7 +11,9 @@ sim_oci_call(int a, int b) {
     return a+b;
 }
 
-int main() {
+int 
+main() 
+{
     int ret = 0;
     int try_times = 3;
     int interval = 1000;
