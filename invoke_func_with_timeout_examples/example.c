@@ -12,7 +12,7 @@ sim_oci_call(int a, int b) {
 }
 
 int 
-main() 
+test1()
 {
     int ret = 0;
     int try_times = 3;
@@ -27,4 +27,32 @@ main()
     } else {
         printf("timeout_func error = %d\n", ret);
     }
+}
+
+int 
+test2()
+{
+    #define MAXLINE 1024
+    char line[MAXLINE];
+
+    int ret = 0;
+    int try_times = 3;
+    int interval = 1000;
+    timeout_func(read, try_times, interval, ret, STDIN_FILENO, line, MAXLINE);
+    if (ret == E_CALL_TIMEOUT) {
+        printf("invoke read timeouts for 3 times\n");
+        return -1;
+    } else if (ret == 0) {
+        printf("invoke read ok\n");
+        return 0;
+    } else {
+        printf("timeout_func error = %d\n", ret);
+    }
+}
+
+int 
+main() 
+{
+    test1();
+    test2();
 }
