@@ -17,7 +17,7 @@ sigfunc *my_signal(int signo, sigfunc* func);
 #define E_CALL_TIMEOUT (-9)
 
 /* interval: microseconds */
-#define timeout_func(func, n, interval, ret, ...) \
+#define add_timeout_to_func(func, n, interval, ret, ...) \
     { \
         invoke_count = 0; \
         sigfunc *sf = my_signal(SIGALRM, timeout_signal_handler); \

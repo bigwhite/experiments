@@ -17,7 +17,7 @@ test1()
     int ret = 0;
     int try_times = 3;
     int interval = 1000;
-    timeout_func(sim_oci_call, try_times, interval, ret, 1, 2);
+    add_timeout_to_func(sim_oci_call, try_times, interval, ret, 1, 2);
     if (ret == E_CALL_TIMEOUT) {
         printf("invoke sim_oci_call timeouts for 3 times\n");
         return -1;
@@ -38,7 +38,7 @@ test2()
     int ret = 0;
     int try_times = 3;
     int interval = 1000;
-    timeout_func(read, try_times, interval, ret, STDIN_FILENO, line, MAXLINE);
+    add_timeout_to_func(read, try_times, interval, ret, STDIN_FILENO, line, MAXLINE);
     if (ret == E_CALL_TIMEOUT) {
         printf("invoke read timeouts for 3 times\n");
         return -1;
