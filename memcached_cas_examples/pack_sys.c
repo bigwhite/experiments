@@ -104,6 +104,7 @@ pack_component(memcached_st *memc, int i)
                     printf("componet [%d] - memcached_add error: %s, [%d]\n", i, memcached_strerror(memc, rc), rc);
                     return -1;
                 } else {
+                    printf("assign a package for product[%s]\n", product_id);
                     printf("componet [%d] - memcached_add key[%s] successfully, its value = %u, cas = %llu\n", i,product_id,
                             value_added, (memc->result).item_cas);
                     return 0;
