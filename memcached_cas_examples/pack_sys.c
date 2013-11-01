@@ -41,11 +41,11 @@ main(int argc, char *argv[])
         return -1;
     }
 
-	rc = memcached_server_push(memc, server);
-	if (rc != MEMCACHED_SUCCESS) {
-		printf("memcached_server_push error: %s\n", memcached_strerror(memc, rc));
-		return rc;
-	}
+    rc = memcached_server_push(memc, server);
+    if (rc != MEMCACHED_SUCCESS) {
+        printf("memcached_server_push error: %s\n", memcached_strerror(memc, rc));
+        return rc;
+    }
 
     memcached_server_list_free(server);
 
