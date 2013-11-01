@@ -25,16 +25,16 @@ bit_count(unsigned long long x)
 int 
 main(int argc, char *argv[])
 {
-	memcached_st *memc;
-	memcached_return_t rc = MEMCACHED_SUCCESS;
-	memcached_server_st *server = NULL;
+    memcached_st *memc;
+    memcached_return_t rc = MEMCACHED_SUCCESS;
+    memcached_server_st *server = NULL;
 
-	memc = memcached_create(NULL);
-	if (NULL == memc) {
-		printf("memcached_create error\n");
-		return -1;
-	}
-	
+    memc = memcached_create(NULL);
+    if (NULL == memc) {
+        printf("memcached_create error\n");
+        return -1;
+    }
+
     server = memcached_server_list_append(server, "127.0.0.1", 11211, &rc);
     if (rc != MEMCACHED_SUCCESS) {
         printf("memcached_server_list_append error: %s\n", memcached_strerror(memc, rc));
@@ -47,13 +47,13 @@ main(int argc, char *argv[])
 		return rc;
 	}
 
-	memcached_server_list_free(server);
+    memcached_server_list_free(server);
 
     rc = memcached_behavior_set(memc, MEMCACHED_BEHAVIOR_SUPPORT_CAS, 1);
-	if (rc != MEMCACHED_SUCCESS) {
-		printf("memcached_behavior_set support cas error: %s\n", memcached_strerror(memc, rc));
-		return -1;
-	}
+    if (rc != MEMCACHED_SUCCESS) {
+        printf("memcached_behavior_set support cas error: %s\n", memcached_strerror(memc, rc));
+        return -1;
+    }
 
     /* pack the component one by one */
     int ret = 0;
