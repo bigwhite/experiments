@@ -67,7 +67,7 @@ min_heap_insert(struct min_heap_t *hp, int item)
 }
 
 int 
-min_heap_remove_max(struct min_heap_t *hp)
+min_heap_remove_min(struct min_heap_t *hp)
 {
     if (hp->items_count == 0)
         return MIN_HEAP_EMPTY;
@@ -124,12 +124,12 @@ void
 min_heap_dump(const struct min_heap_t *hp)
 {
     int i;
-    printf("max heap dump ==>\n");
+    printf("min heap dump ==>\n");
     for (i = 0; i < hp->items_count; i++) {
         printf("%d ", hp->arr[i]);
     }
     printf("\n");
-    printf("<=== max heap dump end\n");
+    printf("<=== min heap dump end\n");
 }
 
 int
@@ -152,7 +152,7 @@ main()
 
     int new_arr[8] = {0};
     for (i = 0; i < sz; i++) {
-        new_arr[i] = min_heap_remove_max(hp);
+        new_arr[i] = min_heap_remove_min(hp);
         min_heap_dump(hp);
     }
     
