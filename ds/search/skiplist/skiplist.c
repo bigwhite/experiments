@@ -137,7 +137,7 @@ skiplist_remove(struct skiplist_t *sl, int item)
                 }
             }
 
-            free(node);
+            free_node(&node);
             sl->count--;
             return SL_SUCCESS;
         }
@@ -188,6 +188,16 @@ void
 skiplist_free(struct skiplist_t **psl)
 {
     struct skiplist_t *sl = (*psl);
+    struct skiplist_node_t *node = NULL;
+    struct skiplist_node_t *next = NULL;
+
+    node = sl->sentinel;
+    while (node != NULL) {
+        next = node->levels[0];
+        free(node);
+        node = next;
+    };
+
     free(sl);
     (*psl) = NULL;
 }
