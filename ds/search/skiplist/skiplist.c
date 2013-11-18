@@ -9,14 +9,52 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define SKIPLIST_MAXLEVEL 8
+
 #define SL_SUCCESS 0
 
-struct skiplist_t {
-
+struct skiplist_node_t {
+    int value;
+    struct skiplist_node_t* levels[];
 };
 
+struct skiplist_t {
+    int count;
+    struct skiplist_node_t *sentinel; 
+};
+
+/* source from redis */
+static int 
+rand_level(void) {
+    int level = 1;
+    while ((rand() & 0xFFFF) < (0.5 * 0xFFFF))
+        level += 1;
+    return (level < SKIPLIST_MAXLEVEL) ? level : SKIPLIST_MAXLEVEL;
+}
+
+static struct skiplist_node_t*
+create_node(int level, int value)
+{
+    struct skiplist_node_t *p = NULL;
+    p = malloc(sizeof(*p) + level * sizeof(struct skiplist_node_t*));
+    if (!p)
+        return NULL;
+
+    memset(p, 0, (sizeof(*p) + level * sizeof(struct skiplist_node_t*)));
+    p->value = value;
+
+    return p;
+}
+
+static void
+free_node(struct skiplist_node_t **nd) 
+{
+    free(*nd);
+    (*nd) = NULL;
+}
+
 struct skiplist_t* 
-skiplist_new(size_t sz)
+skiplist_new()
 {
     struct skiplist_t *p = NULL;
 
@@ -24,7 +62,12 @@ skiplist_new(size_t sz)
     if (!p) 
         return NULL;
 
-    /* TODO */
+    p->count = 0;
+    p->sentinel = create_node(SKIPLIST_MAXLEVEL, 0);
+    if (!p->sentinel) {
+        free(p);
+        return NULL;
+    }
 
     return p;
 }
@@ -42,9 +85,15 @@ skiplist_remove(struct skiplist_t *sl, int item)
 }
 
 int 
+skiplist_search(const struct skiplist_t *sl, const int item)
+{
+    return SL_SUCCESS;
+}
+
+int 
 skiplist_items_count(const struct skiplist_t *sl)
 {
-    return 0;
+    return sl->count;
 }
 
 void
@@ -81,6 +130,27 @@ main()
     for (i = 0; i < sz; i++)
         skiplist_insert(sl, arr[i]);
     skiplist_dump(sl);
+
+    int ret;
+    ret = skiplist_search(sl, 5);
+    if (ret == SL_SUCCESS)
+        printf("found %d\n", 5);
+
+    ret = skiplist_search(sl, 10);
+    if (ret == SL_SUCCESS)
+        printf("found %d\n", 10);
+    else
+        printf("do not found %d\n", 10);
+
+    ret = skiplist_search(sl, 3);
+    if (ret == SL_SUCCESS)
+        printf("found %d\n", 3);
+
+    ret = skiplist_search(sl, 20);
+    if (ret == SL_SUCCESS)
+        printf("found %d\n", 20);
+    else
+        printf("do not found %d\n", 20);
 
     skiplist_free(&sl);
 }
