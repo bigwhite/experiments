@@ -11,25 +11,25 @@
 extern "C" {
 #endif
 
-struct bst_tree_t;
+struct bst_t;
 
-struct bst_tree_t* bst_tree_new();
+struct bst_t* bst_new();
 
-void bst_tree_free(struct bst_tree_t **t);
+void bst_free(struct bst_t **t);
 
-int bst_tree_search_node(const struct bst_tree_t *t, int v);
+int bst_search_node(const struct bst_t *t, int v);
 
-int bst_tree_insert_node(struct bst_tree_t *t, int v);
+int bst_insert_node(struct bst_t *t, int v);
 
-int bst_tree_delete_node(struct bst_tree_t *t, int v);
+int bst_delete_node(struct bst_t *t, int v);
 
-int is_bst_tree_empty(const struct bst_tree_t *t);
+int is_bst_empty(const struct bst_t *t);
 
-void bst_tree_levelorder_traverse(const struct bst_tree_t *t);
+void bst_levelorder_traverse(const struct bst_t *t);
 
-void bst_tree_inorder_traverse(const struct bst_tree_t *t);
+void bst_inorder_traverse(const struct bst_t *t);
 
-int bst_tree_height(const struct bst_tree_t *t);
+int bst_height(const struct bst_t *t);
 
 
 #ifdef __cplusplus

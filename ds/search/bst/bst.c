@@ -17,18 +17,18 @@ struct bst_node_t {
     int value;
 };
 
-struct bst_tree_t {
+struct bst_t {
     struct bst_node_t *root; /* root node */
 };
 
 int 
-is_bst_tree_empty(const struct bst_tree_t *t)
+is_bst_empty(const struct bst_t *t)
 {
     return (t->root == NULL);
 }
 
 static struct bst_node_t*
-search_node(const struct bst_tree_t *t, int v) 
+search_node(const struct bst_t *t, int v) 
 {
     struct bst_node_t *node = t->root;
     
@@ -46,13 +46,13 @@ search_node(const struct bst_tree_t *t, int v)
 }
 
 int 
-bst_tree_search_node(const struct bst_tree_t *t, int v)
+bst_search_node(const struct bst_t *t, int v)
 {
     return (search_node(t, v) != NULL);
 }
 
 int
-bst_tree_insert_node(struct bst_tree_t *t, int v) 
+bst_insert_node(struct bst_t *t, int v) 
 {
     struct bst_node_t *node = NULL;
     node = malloc(sizeof(*node));
@@ -63,7 +63,7 @@ bst_tree_insert_node(struct bst_tree_t *t, int v)
     node->value = v;    
 
     /* case 1: empty tree, new node is treated as root node */
-    if (is_bst_tree_empty(t)) {
+    if (is_bst_empty(t)) {
         t->root = node;
         return 0;
     }
@@ -109,7 +109,7 @@ successor(const struct bst_node_t *node)
 }
 
 int
-bst_tree_delete_node(struct bst_tree_t *t, int v) 
+bst_delete_node(struct bst_t *t, int v) 
 {
     struct bst_node_t *node, *pn = NULL;
 
@@ -168,10 +168,10 @@ bst_tree_delete_node(struct bst_tree_t *t, int v)
     return 0;
 }
 
-struct bst_tree_t*
-bst_tree_new()
+struct bst_t*
+bst_new()
 {
-    struct bst_tree_t *t = NULL;
+    struct bst_t *t = NULL;
 
     t = malloc(sizeof(*t));
     if (t == NULL)
@@ -197,7 +197,7 @@ free_node(struct bst_node_t *node)
 }
 
 void 
-bst_tree_free(struct bst_tree_t **t)
+bst_free(struct bst_t **t)
 {
     free_node((*t)->root);
     free(*t);
@@ -216,7 +216,7 @@ bst_node_height(const struct bst_node_t *node)
 }
 
 int
-bst_tree_height(const struct bst_tree_t *t)
+bst_height(const struct bst_t *t)
 {
     return bst_node_height((const struct bst_node_t*)t->root);
 }
@@ -226,7 +226,7 @@ bst_tree_height(const struct bst_tree_t *t)
  * output nil for empty subtree node 
  */
 void 
-bst_tree_levelorder_traverse(const struct bst_tree_t *t) 
+bst_levelorder_traverse(const struct bst_t *t) 
 {
     struct queue_t *q1 = queue_new();
     if (q1 == NULL) return;
@@ -274,7 +274,7 @@ static void inorder_traverse_node(const struct bst_node_t *nd)
 }
 
 void 
-bst_tree_inorder_traverse(const struct bst_tree_t *t) 
+bst_inorder_traverse(const struct bst_t *t) 
 {
     if (t->root != NULL) 
         inorder_traverse_node(t->root);
@@ -286,8 +286,8 @@ bst_tree_inorder_traverse(const struct bst_tree_t *t)
 int 
 main()
 {
-    struct bst_tree_t *t = NULL;
-    t = bst_tree_new();
+    struct bst_t *t = NULL;
+    t = bst_new();
     if (!t) {
         printf("create bst tree error\n");
         return -1;
@@ -296,30 +296,30 @@ main()
     int arr[] = {8, 3, 10, 1, 6, 14, 4, 7, 13};
     int retv, i = 0;
     for (i = 0; i < sizeof(arr)/sizeof(arr[0]); i++) {
-        if ((retv = bst_tree_insert_node(t, arr[i])) != 0) {
+        if ((retv = bst_insert_node(t, arr[i])) != 0) {
             printf("err insert %d, err = %d\n", arr[i], retv);
             return -1;
         }
     }
 
-    bst_tree_inorder_traverse(t);
-    bst_tree_levelorder_traverse(t);
-    printf("search 1 = %d\n", bst_tree_search_node(t, 1));
-    printf("search 14 = %d\n", bst_tree_search_node(t, 14));
-    printf("search 8 = %d\n", bst_tree_search_node(t, 8));
-    printf("search 23 = %d\n", bst_tree_search_node(t, 23));
+    bst_inorder_traverse(t);
+    bst_levelorder_traverse(t);
+    printf("search 1 = %d\n", bst_search_node(t, 1));
+    printf("search 14 = %d\n", bst_search_node(t, 14));
+    printf("search 8 = %d\n", bst_search_node(t, 8));
+    printf("search 23 = %d\n", bst_search_node(t, 23));
 
-    bst_tree_delete_node(t, 1);
-    bst_tree_levelorder_traverse(t);
-    bst_tree_insert_node(t, 1);
-    bst_tree_levelorder_traverse(t);
-    bst_tree_delete_node(t, 6);
-    bst_tree_levelorder_traverse(t);
-    bst_tree_delete_node(t, 14);
-    bst_tree_levelorder_traverse(t);
-    bst_tree_delete_node(t, 10);
-    bst_tree_levelorder_traverse(t);
+    bst_delete_node(t, 1);
+    bst_levelorder_traverse(t);
+    bst_insert_node(t, 1);
+    bst_levelorder_traverse(t);
+    bst_delete_node(t, 6);
+    bst_levelorder_traverse(t);
+    bst_delete_node(t, 14);
+    bst_levelorder_traverse(t);
+    bst_delete_node(t, 10);
+    bst_levelorder_traverse(t);
 
-    bst_tree_free(&t);
+    bst_free(&t);
     return 0;
 }
