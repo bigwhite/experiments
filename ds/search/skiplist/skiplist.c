@@ -215,9 +215,10 @@ skiplist_dump(const struct skiplist_t *sl)
         if (next != NULL) {
             for (j = 0; j < sl->count; j++) {
                 if (i <= next->level - 1) {
-                    printf("[%d] - ", next->value);
+                    printf("[%d ]  ", next->value);
                 } else {
-                    printf("[ ] - ");
+                    //printf("[ ] - ");
+                    printf("      ");
                 }
                 next = next->levels[0];
             }
