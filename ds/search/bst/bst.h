@@ -21,7 +21,7 @@ int bst_search_node(const struct bst_t *t, int v);
 
 int bst_insert_node(struct bst_t *t, int v);
 
-int bst_delete_node(struct bst_t *t, int v);
+int bst_remove_node(struct bst_t *t, int v);
 
 int is_bst_empty(const struct bst_t *t);
 

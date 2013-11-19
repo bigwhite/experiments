@@ -109,7 +109,7 @@ successor(const struct bst_node_t *node)
 }
 
 int
-bst_delete_node(struct bst_t *t, int v) 
+bst_remove_node(struct bst_t *t, int v) 
 {
     struct bst_node_t *node, *pn = NULL;
 
@@ -309,15 +309,15 @@ main()
     printf("search 8 = %d\n", bst_search_node(t, 8));
     printf("search 23 = %d\n", bst_search_node(t, 23));
 
-    bst_delete_node(t, 1);
+    bst_remove_node(t, 1);
     bst_levelorder_traverse(t);
     bst_insert_node(t, 1);
     bst_levelorder_traverse(t);
-    bst_delete_node(t, 6);
+    bst_remove_node(t, 6);
     bst_levelorder_traverse(t);
-    bst_delete_node(t, 14);
+    bst_remove_node(t, 14);
     bst_levelorder_traverse(t);
-    bst_delete_node(t, 10);
+    bst_remove_node(t, 10);
     bst_levelorder_traverse(t);
 
     bst_free(&t);
