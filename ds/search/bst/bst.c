@@ -240,6 +240,8 @@ bst_levelorder_traverse(const struct bst_t *t)
     struct bst_node_t *tn = NULL;
 
     tn = t->root;
+    if (tn == NULL) return;
+
     enqueue(q1, tn);
     while(!is_queue_empty(q1)) {
         while (!is_queue_empty(q1)) {
