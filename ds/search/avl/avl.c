@@ -36,7 +36,7 @@ static int is_avl_empty(const struct avl_tree_t *t);
 static void free_node(struct avl_tree_node_t *node);
 static struct avl_tree_node_t* search_node(const struct avl_tree_t *t, int v);
 static struct avl_tree_node_t* insert_node(struct avl_tree_t *t, int v);
-static void balance(struct avl_tree_t *t, struct avl_tree_node_t *node);
+static void balance(struct avl_tree_t *t, struct avl_tree_node_t *node, int trace_ancestor);
 static void left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
 static void right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
 static void left_right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
@@ -82,7 +82,7 @@ avl_tree_insert_node(struct avl_tree_t *t, int v)
     struct avl_tree_node_t *node = insert_node(t, v);
 
     if (node == NULL) return -1;
-    balance(t, node);
+    balance(t, node, 0);
     return AVL_TREE_SUCCESS;
 }
 
@@ -98,7 +98,7 @@ avl_tree_remove_node(struct avl_tree_t *t, int v)
 
     parent = node->parent;
     remove_node(t, node);
-    balance(t, parent);
+    balance(t, parent, 1);
 
     return 0;
 }
@@ -510,15 +510,18 @@ recognize_rotate_type(struct avl_tree_node_t *least_unbalanced_subtree_root)
  * if unbalance, rebalance the avl tree
  *
  * node - new insert node
+ * trace_ancestor: if 1, we go on tracing ancestors' balance factor
+ *                 otherwise, we just balance the first least unbalanced
+ *                 subtree
  */
 static void 
-balance(struct avl_tree_t *t, struct avl_tree_node_t *node)
+balance(struct avl_tree_t *t, struct avl_tree_node_t *node, int trace_ancestor)
 {
     struct avl_tree_node_t *least_unbalanced_subtree_root;
     struct avl_tree_node_t *start_node = node;
     struct avl_tree_node_t *parent;
 
-    while (1) {
+    do {
         least_unbalanced_subtree_root = is_balanced(start_node);
         if (!least_unbalanced_subtree_root) {
             /* no balance occurs */
@@ -550,9 +553,8 @@ balance(struct avl_tree_t *t, struct avl_tree_node_t *node)
             default:
                 break;
         }
-
         start_node = parent;
-    }
+    } while (trace_ancestor);
 
     return;
 }
@@ -676,13 +678,11 @@ main()
     printf("remove 12 = %d\n", avl_tree_remove_node(t, 12));
     avl_tree_levelorder_traverse(t);
 
-    for (i = 0; i < 10000; i++) {
+    for (i = 0; i < 1000000; i++) {
         avl_tree_insert_node(t, i);
-        printf("insert %d ok\n", i);
+        //printf("insert %d ok\n", i);
     }
 
     avl_tree_free(&t);
     return 0;
 }
-
-
