@@ -232,7 +232,10 @@ bst_levelorder_traverse(const struct bst_t *t)
     struct queue_t *q1 = queue_new();
     if (q1 == NULL) return;
     struct queue_t *q2 = queue_new();
-    if (q2 == NULL) return;
+    if (q2 == NULL) {
+        queue_free(&q1); 
+        return;
+    }
 
     struct bst_node_t *tn = NULL;
 
