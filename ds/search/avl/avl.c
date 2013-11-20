@@ -26,15 +26,13 @@ static int is_avl_empty(const struct avl_tree_t *t);
 static void free_node(struct avl_tree_node_t *node);
 static struct avl_tree_node_t* search_node(const struct avl_tree_t *t, int v);
 static struct avl_tree_node_t* insert_node(struct avl_tree_t *t, int v);
-static void balance();
-static void left_rotate();
-static void right_rotate();
-static void left_right_rotate();
-static void right_left_rotate();
+static void balance(struct avl_tree_node_t *node);
+static void left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
+static void right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
 static void inorder_traverse_node(const struct avl_tree_node_t *nd);
 static int node_height(const struct avl_tree_node_t *node);
 static void adjust_ancestor_height(const struct avl_tree_node_t *node);
-static int balance_factor(const struct avl_tree_node_t *node);
+static __inline__ int balance_factor(const struct avl_tree_node_t *node);
 
 
 struct avl_tree_t* 
@@ -67,6 +65,9 @@ avl_tree_search_node(const struct avl_tree_t *t, int v)
 int 
 avl_tree_insert_node(struct avl_tree_t *t, int v)
 {
+    struct avl_tree_node_t *node = insert_node(t, v);
+
+    if (node == NULL) return -1;
 
 }
 
@@ -214,7 +215,7 @@ adjust_ancestor_height(const struct avl_tree_node_t *node)
     }
 }
 
-static int 
+static __inline__ int 
 balance_factor(const struct avl_tree_node_t *node)
 {
     int left_subtree_height = 0;
@@ -243,7 +244,7 @@ insert_node(struct avl_tree_t *t, int v)
     /* case 1: empty tree, new node is treated as root node */
     if (is_avl_empty(t)) {
         t->root = node;
-        return 0;
+        return node;
     }
 
     /* case 2: non-empty tree */
@@ -273,8 +274,116 @@ insert_node(struct avl_tree_t *t, int v)
             return NULL; /* exist */
         }
     }
+}
 
-    return 0;
+/*
+
+   P is new insert node, right_rotate(A) is like this:
+
+            A                   B
+           / \                 / \
+          /   \               /   \
+         B     C   =>        D     A
+        / \                 /     / \
+       /   \               /     /   \
+      D    E              P      E   C
+     /
+    /
+    P
+
+            A                    B
+           / \                 /  \
+          /   \               /    \
+         B     C   =>        D       A
+        / \                   \     / \
+       /   \                   \   /   \
+      D    E                   P   E   C
+       \
+        \
+        P
+*/
+
+/* 
+ * subtree_root is the root node of the least unbalanced subtree
+ */
+static void 
+right_rotate(struct avl_tree_t* t, struct avl_tree_node_t *subtree_root)
+{
+    struct avl_tree_node_t *old_subtree_root = subtree_root;
+    struct avl_tree_node_t *new_subtree_root = subtree_root->left;
+
+    if (old_subtree_root->parent != NULL) {
+        if (old_subtree_root->value > old_subtree_root->parent->value) {
+            old_subtree_root->parent->right = new_subtree_root;
+        } else {
+            old_subtree_root->parent->left = new_subtree_root;
+        }
+        new_subtree_root->parent = old_subtree_root->parent;
+    } else {
+        /* subtree_root is root of this avl tree */
+        t->root = new_subtree_root;
+        new_subtree_root->parent = NULL;
+    }
+
+    old_subtree_root->left = new_subtree_root->right;
+    new_subtree_root->right->parent = old_subtree_root;
+    new_subtree_root->right = old_subtree_root;
+    old_subtree_root->parent = new_subtree_root;
+
+}
+
+/*
+
+   P is new insert node, left_rotate(A) is like this:
+
+            A                           C 
+           / \                         / \
+          /   \                       /   \
+         B     C        =>           A     E
+              / \                   / \     \
+             /   \                 /   \     \
+            D     E               B     D     P
+                   \
+                    \ 
+                     P
+
+            A                           C 
+           / \                         / \
+          /   \                       /   \
+         B     C        =>           A     E
+              / \                   / \    / 
+             /   \                 /   \  /
+            D     E               B     D P
+                 /
+                / 
+               P
+*/
+/* 
+ * subtree_root is the root node of the least unbalanced subtree
+ */
+static void 
+left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root)
+{
+    struct avl_tree_node_t *old_subtree_root = subtree_root;
+    struct avl_tree_node_t *new_subtree_root = subtree_root->left;
+
+    if (old_subtree_root->parent != NULL) {
+        if (old_subtree_root->value > old_subtree_root->parent->value) {
+            old_subtree_root->parent->right = new_subtree_root;
+        } else {
+            old_subtree_root->parent->left = new_subtree_root;
+        }
+        new_subtree_root->parent = old_subtree_root->parent;
+    } else {
+        /* subtree_root is root of this avl tree */
+        t->root = new_subtree_root;
+        new_subtree_root->parent = NULL;
+    }
+
+    old_subtree_root->right = new_subtree_root->left;
+    new_subtree_root->left->parent = old_subtree_root;
+    new_subtree_root->left = old_subtree_root;
+    old_subtree_root->parent = new_subtree_root;
 }
 
 int 
