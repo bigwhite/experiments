@@ -16,7 +16,6 @@ struct avl_tree_node_t {
     struct avl_tree_node_t *parent; 
     struct avl_tree_node_t *left; 
     struct avl_tree_node_t *right;
-    int height; 
     int value;
 };
 
@@ -32,10 +31,11 @@ enum {
     RR_ROTATE 
 };
 
+static struct avl_tree_node_t* successor(struct avl_tree_node_t *node);
 static int is_avl_empty(const struct avl_tree_t *t);
 static void free_node(struct avl_tree_node_t *node);
 static struct avl_tree_node_t* search_node(const struct avl_tree_t *t, int v);
-static struct avl_tree_node_t* insert_node(struct avl_tree_t *t, int v, int *likely_unbalanced);
+static struct avl_tree_node_t* insert_node(struct avl_tree_t *t, int v);
 static void balance(struct avl_tree_t *t, struct avl_tree_node_t *node);
 static void left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
 static void right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
@@ -43,9 +43,10 @@ static void left_right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subt
 static void right_left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
 static void inorder_traverse_node(const struct avl_tree_node_t *nd);
 static int node_height(const struct avl_tree_node_t *node);
-static void adjust_ancestor_height(const struct avl_tree_node_t *node, int *likely_unbalanced);
 static __inline__ int balance_factor(const struct avl_tree_node_t *node);
-static struct avl_tree_node_t* is_balanced(const struct avl_tree_node_t *node);
+static struct avl_tree_node_t* is_balanced(struct avl_tree_node_t *node);
+void remove_node(struct avl_tree_t *t, struct avl_tree_node_t *node);
+static int recognize_rotate_type(struct avl_tree_node_t *least_unbalanced_subtree_root);
 
 
 struct avl_tree_t* 
@@ -78,20 +79,28 @@ avl_tree_search_node(const struct avl_tree_t *t, int v)
 int 
 avl_tree_insert_node(struct avl_tree_t *t, int v)
 {
-    int likely_unbalanced = 1;
-    struct avl_tree_node_t *node = insert_node(t, v, &likely_unbalanced);
+    struct avl_tree_node_t *node = insert_node(t, v);
 
     if (node == NULL) return -1;
-
-    if (likely_unbalanced)
-        balance(t, node);
+    balance(t, node);
     return AVL_TREE_SUCCESS;
 }
 
 int 
 avl_tree_remove_node(struct avl_tree_t *t, int v)
 {
+    struct avl_tree_node_t *node;
+    struct avl_tree_node_t *parent;
 
+    node = search_node(t, v);
+    if (node == NULL)
+        return -1; /* not found the value */
+
+    parent = node->parent;
+    remove_node(t, node);
+    balance(t, parent);
+
+    return 0;
 }
 
 void
@@ -108,6 +117,8 @@ avl_tree_levelorder_traverse(const struct avl_tree_t *t)
     struct avl_tree_node_t *tn = NULL;
 
     tn = t->root;
+    if (tn == NULL) return;
+
     enqueue(q1, tn);
     while (!is_queue_empty(q1)) {
         while (!is_queue_empty(q1)) {
@@ -212,50 +223,14 @@ node_height(const struct avl_tree_node_t *node)
     return 1 + ((h1 >= h2) ? h1 : h2);
 }
 
-static void 
-adjust_ancestor_height(const struct avl_tree_node_t *node, int *likely_unbalanced)
-{
-    /*
-     * recaculate the ancestor nodes' height 
-     * of this node 
-     */ 
-
-    struct avl_tree_node_t *parent = node->parent;
-    int height;
-
-    (*likely_unbalanced) = 0;
-    if (parent != NULL) {
-        if (parent->height != node_height(parent)) {
-            (*likely_unbalanced) = 1;
-        }
-    }
-
-    while (parent != NULL) {
-        height = node_height(parent);
-        if (height == parent->height) {
-            return;
-        } 
-        parent->height = height;
-        parent = parent->parent;
-    }
-}
-
 static __inline__ int 
 balance_factor(const struct avl_tree_node_t *node)
 {
-    int left_subtree_height = 0;
-    int right_subtree_height = 0;
-
-    if (node->left != NULL)
-        left_subtree_height = node->left->height;
-    if (node->right != NULL)
-        right_subtree_height = node->right->height;
-
-    return left_subtree_height - right_subtree_height;
+    return node_height(node->left) - node_height(node->right);
 }
 
 static struct avl_tree_node_t* 
-insert_node(struct avl_tree_t *t, int v, int *likely_unbalanced)
+insert_node(struct avl_tree_t *t, int v)
 {
     struct avl_tree_node_t *node = NULL;
     node = malloc(sizeof(*node));
@@ -263,13 +238,11 @@ insert_node(struct avl_tree_t *t, int v, int *likely_unbalanced)
     node->parent = NULL;
     node->left = NULL;
     node->right = NULL;
-    node->height = 1;
     node->value = v;
 
     /* case 1: empty tree, new node is treated as root node */
     if (is_avl_empty(t)) {
         t->root = node;
-        (*likely_unbalanced) = 0;
         return node;
     }
 
@@ -283,7 +256,6 @@ insert_node(struct avl_tree_t *t, int v, int *likely_unbalanced)
             } else {
                 tn->left = node;
                 node->parent = tn;
-                adjust_ancestor_height(node, likely_unbalanced);
                 return node;
             }
         } else if (v > tn->value) {
@@ -292,7 +264,6 @@ insert_node(struct avl_tree_t *t, int v, int *likely_unbalanced)
             } else {
                 tn->right = node;
                 node->parent = tn;
-                adjust_ancestor_height(node, likely_unbalanced);
                 return node;
             }
         } else { /* equal */
@@ -356,7 +327,6 @@ right_rotate(struct avl_tree_t* t, struct avl_tree_node_t *subtree_root)
         new_subtree_root->right->parent = old_subtree_root;
     new_subtree_root->right = old_subtree_root;
     old_subtree_root->parent = new_subtree_root;
-
 }
 
 /*
@@ -487,37 +457,42 @@ left_right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root)
  * else return NULL;
  */
 static struct avl_tree_node_t*
-is_balanced(const struct avl_tree_node_t *node)
+is_balanced(struct avl_tree_node_t *node)
 {
-    struct avl_tree_node_t *parent = node->parent;
+    if (!node)
+        return NULL;
+
+    struct avl_tree_node_t *p = node;
     int factor;
 
     /* 
      * check whether it is balanced 
      */
-    while (parent) {
-        factor = balance_factor(parent);
+    while (p) {
+        factor = balance_factor(p);
         if (abs(factor) > 1) {
-            return parent;
+            return p;
         }
-        parent = parent->parent;
+        p = p->parent;
     }
 
     return NULL;
 }
 
 static int
-recognize_rotate_type(struct avl_tree_node_t *least_unbalanced_subtree_root,
-                      struct avl_tree_node_t *insert_node) 
+recognize_rotate_type(struct avl_tree_node_t *least_unbalanced_subtree_root)
 {
-    if (insert_node->value > least_unbalanced_subtree_root->value) {
-        if (insert_node->value > least_unbalanced_subtree_root->right->value) {
+    struct avl_tree_node_t *node = least_unbalanced_subtree_root;
+    int factor = balance_factor(node);
+
+    if (factor < -1) {
+        if (node->right != NULL && balance_factor(node->right) < 0) {
             return LL_ROTATE;
         } else {
             return RL_ROTATE;
         }
-    } else {
-        if (insert_node->value < least_unbalanced_subtree_root->left->value) {
+    } else if (factor > 1) {
+        if (node->left != NULL && balance_factor(node->left) > 0) {
             return RR_ROTATE;
         } else {
             return LR_ROTATE;
@@ -536,39 +511,120 @@ static void
 balance(struct avl_tree_t *t, struct avl_tree_node_t *node)
 {
     struct avl_tree_node_t *least_unbalanced_subtree_root;
+    struct avl_tree_node_t *start_node = node;
+    struct avl_tree_node_t *parent;
 
-    least_unbalanced_subtree_root = is_balanced(node);
-    if (!least_unbalanced_subtree_root) {
-        return;
-    }
+    while (1) {
+        least_unbalanced_subtree_root = is_balanced(start_node);
+        if (!least_unbalanced_subtree_root) {
+            /* no balance occurs */
+            return;
+        }
+        parent = least_unbalanced_subtree_root->parent;
 
-    int type = recognize_rotate_type(least_unbalanced_subtree_root, node);
-    switch (type) {
-        case LL_ROTATE:
-            left_rotate(t, least_unbalanced_subtree_root);
-            printf("left rotate %d\n", least_unbalanced_subtree_root->value);
-            break;
+        int type = recognize_rotate_type(least_unbalanced_subtree_root);
+        switch (type) {
+            case LL_ROTATE:
+                left_rotate(t, least_unbalanced_subtree_root);
+                printf("left rotate %d\n", least_unbalanced_subtree_root->value);
+                break;
 
-        case LR_ROTATE:
-            left_right_rotate(t, least_unbalanced_subtree_root);
-            printf("left right rotate %d\n", least_unbalanced_subtree_root->value);
-            break;
+            case LR_ROTATE:
+                left_right_rotate(t, least_unbalanced_subtree_root);
+                printf("left right rotate %d\n", least_unbalanced_subtree_root->value);
+                break;
 
-        case RL_ROTATE:
-            right_left_rotate(t, least_unbalanced_subtree_root);
-            printf("right left rotate %d\n", least_unbalanced_subtree_root->value);
-            break;
+            case RL_ROTATE:
+                right_left_rotate(t, least_unbalanced_subtree_root);
+                printf("right left rotate %d\n", least_unbalanced_subtree_root->value);
+                break;
 
-        case RR_ROTATE:
-            right_rotate(t, least_unbalanced_subtree_root);
-            printf("right rotate %d\n", least_unbalanced_subtree_root->value);
-            break;
-        default:
-            break;
+            case RR_ROTATE:
+                right_rotate(t, least_unbalanced_subtree_root);
+                printf("right rotate %d\n", least_unbalanced_subtree_root->value);
+                break;
+            default:
+                break;
+        }
+
+        start_node = parent;
     }
 
     return;
 }
+
+static struct avl_tree_node_t*
+successor(struct avl_tree_node_t *node)
+{
+    if (node->right == NULL) return NULL;
+
+    node = node->right;
+    while (node->left != NULL) {
+        node = node->left;
+    }
+    return node;
+}
+
+void 
+remove_node(struct avl_tree_t *t, struct avl_tree_node_t *node)
+{
+    struct avl_tree_node_t *parent = NULL;
+    int likely_unbalanced;
+
+    /*
+     * leaf node case
+     */
+    if ((node->left == NULL) && (node->right == NULL)) {
+        if (node->parent == NULL) { /* root node */
+            free(t->root);
+            t->root = NULL;
+        } else {
+            parent = node->parent;
+            if (node->value < parent->value) {
+                parent->left = NULL;
+            } else {
+                parent->right = NULL;
+            }
+            free(node);
+        }
+        return;
+    }
+
+    /*
+     * both left and right subtree are not empty
+     */
+    if ((node->left != NULL) && (node->right != NULL)) {
+        struct avl_tree_node_t *sn = successor(node);
+        parent = node->parent;
+        if (sn->value < sn->parent->value) {
+            sn->parent->left = NULL; /* remove the successor node */
+        } else {
+            sn->parent->right = NULL; /* remove the successor node */
+        }
+        node->value = sn->value;
+        free(sn);
+        return;
+    }
+
+    /*
+     * either left subtree or right subtree
+     */
+    struct avl_tree_node_t *sub_n = NULL;
+    if (node->left != NULL) sub_n = node->left;
+    if (node->right != NULL) sub_n = node->right;
+    parent = node->parent;
+
+    if (node->value < node->parent->value) { /* node is left subtree of parent node */
+        node->parent->left = sub_n;
+    } else {
+        node->parent->right = sub_n;
+    }
+    sub_n->parent = node->parent;
+
+    free(node);
+    return;
+}
+
 
 int 
 main()
@@ -581,7 +637,7 @@ main()
     }
     printf("create avl tree ok\n");
 
-    int arr[] = {15, 10, 4, 20, 30};
+    int arr[] = {15, 10, 4, 20, 30, 16, 13, 11, 12}; /* rr->ll->rl->lr */
     int retv, i = 0;
     for (i = 0; i < sizeof(arr)/sizeof(arr[0]); i++) {
         if ((retv = avl_tree_insert_node(t, arr[i])) != 0) {
@@ -589,30 +645,36 @@ main()
             return -1;
         }
         printf("insert %d ok\n", arr[i]);
-        avl_tree_levelorder_traverse(t);
     }
-
-    avl_tree_inorder_traverse(t);
     avl_tree_levelorder_traverse(t);
-    printf("search 1 = %d\n", avl_tree_search_node(t, 1));
-    printf("search 14 = %d\n", avl_tree_search_node(t, 14));
-    printf("search 8 = %d\n", avl_tree_search_node(t, 8));
+
+    printf("search 15 = %d\n", avl_tree_search_node(t, 15));
+    printf("search 12 = %d\n", avl_tree_search_node(t, 12));
+    printf("search 30 = %d\n", avl_tree_search_node(t, 30));
     printf("search 23 = %d\n", avl_tree_search_node(t, 23));
 
-    /*
-    avl_tree_remove_node(t, 1);
+    printf("remove 4 = %d\n", avl_tree_remove_node(t, 4)); /* rl */
     avl_tree_levelorder_traverse(t);
-    avl_tree_insert_node(t, 1);
+    printf("remove 15 = %d\n", avl_tree_remove_node(t, 15)); /* remove root */
+    avl_tree_levelorder_traverse(t); /* */
+    printf("remove 30 = %d\n", avl_tree_remove_node(t, 30));  /* lr */
     avl_tree_levelorder_traverse(t);
-    avl_tree_remove_node(t, 6);
+    printf("remove 16 = %d\n", avl_tree_remove_node(t, 16));
     avl_tree_levelorder_traverse(t);
-    avl_tree_remove_node(t, 14);
+    printf("remove 20 = %d\n", avl_tree_remove_node(t, 20));
     avl_tree_levelorder_traverse(t);
-    avl_tree_remove_node(t, 10);
+    printf("remove 13 = %d\n", avl_tree_remove_node(t, 13));
     avl_tree_levelorder_traverse(t);
-    */
+    printf("remove 11 = %d\n", avl_tree_remove_node(t, 11)); /* remove root */
+    avl_tree_levelorder_traverse(t);
+    printf("remove 10 = %d\n", avl_tree_remove_node(t, 10)); 
+    avl_tree_levelorder_traverse(t);
+    printf("remove 12 = %d\n", avl_tree_remove_node(t, 12));
+    avl_tree_levelorder_traverse(t);
 
     avl_tree_free(&t);
 
     return 0;
 }
+
+
