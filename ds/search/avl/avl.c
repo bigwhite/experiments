@@ -29,6 +29,8 @@ static struct avl_tree_node_t* insert_node(struct avl_tree_t *t, int v);
 static void balance(struct avl_tree_node_t *node);
 static void left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
 static void right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
+static void left_right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
+static void right_left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root);
 static void inorder_traverse_node(const struct avl_tree_node_t *nd);
 static int node_height(const struct avl_tree_node_t *node);
 static void adjust_ancestor_height(const struct avl_tree_node_t *node);
@@ -326,7 +328,8 @@ right_rotate(struct avl_tree_t* t, struct avl_tree_node_t *subtree_root)
     }
 
     old_subtree_root->left = new_subtree_root->right;
-    new_subtree_root->right->parent = old_subtree_root;
+    if (new_subtree_root->right != NULL) 
+        new_subtree_root->right->parent = old_subtree_root;
     new_subtree_root->right = old_subtree_root;
     old_subtree_root->parent = new_subtree_root;
 
@@ -381,10 +384,87 @@ left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root)
     }
 
     old_subtree_root->right = new_subtree_root->left;
-    new_subtree_root->left->parent = old_subtree_root;
+    if (new_subtree_root->left != NULL) 
+        new_subtree_root->left->parent = old_subtree_root;
     new_subtree_root->left = old_subtree_root;
     old_subtree_root->parent = new_subtree_root;
 }
+
+/*
+
+   P is new insert node, right_left_rotate is like this:
+
+     A                           A                              D
+    / \                         / \                            / \
+   /   \   right_rotate(C)     /   \    left_rotate(A)        /   \
+  B     C        =>           B     D     =>                 A     C
+       / \                           \                      /     / \
+      /   \                           \                    /     /   \
+     D     E                           C                  B     P    E
+     \                                / \
+      \                              /   \
+       P                             P   E
+
+     A                           A                              D
+    / \                         / \                            / \
+   /   \   right_rotate(C)     /   \    left_rotate(A)        /   \
+  B     C        =>           B     D     =>                 A     C
+       / \                         / \                      / \     \
+      /   \                       /   \                    /   \     \
+     D     E                     P     C                  B     P     E
+    /                                   \
+   /                                     \
+  P                                       E
+
+*/  
+static void 
+right_left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root) 
+{
+    right_rotate(t, subtree_root->right);
+    left_rotate(t, subtree_root);
+}
+
+/*
+   P is new insert node, left_right_rotate is like this:
+
+         A                          A                           E 
+        / \                        / \                         / \
+       /   \   left_rotate(B)     /   \ right_rotate(A)       /   \
+      B     C        =>          E     C     =>              B     A     
+     / \                        /                           / \     \
+    /   \                      /                           /   \     \
+    D    E                    B                           D    P      C
+        /                    / \       
+       /                    /   \
+      P                    D    P
+
+         A                          A                           E 
+        / \                        / \                         / \
+       /   \   left_rotate(B)     /   \ right_rotate(A)       /   \
+      B     C        =>          E     C     =>              B     A     
+     / \                        / \                          /    / \
+    /   \                      /   \                        /    /   \
+    D    E                    B     P                      D     P    C
+          \                  /        
+           \                /   
+            P              D   
+*/
+
+static void 
+left_right_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root)
+{
+    left_rotate(t, subtree_root->left);
+    right_rotate(t, subtree_root);
+}
+
+
+static void 
+balance(struct avl_tree_node_t *node)
+{
+
+}
+
+
 
 int 
 main()
