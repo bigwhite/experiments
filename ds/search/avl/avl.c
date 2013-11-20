@@ -276,6 +276,7 @@ insert_node(struct avl_tree_t *t, int v)
 /*
 
    P is new insert node, right_rotate(A) is like this:
+   A is the least_unbalanced_tree's root
 
             A                   B
            / \                 / \
@@ -332,6 +333,7 @@ right_rotate(struct avl_tree_t* t, struct avl_tree_node_t *subtree_root)
 /*
 
    P is new insert node, left_rotate(A) is like this:
+   A is the least_unbalanced_tree's root
 
             A                           C 
            / \                         / \
@@ -386,7 +388,8 @@ left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root)
 
 /*
 
-   P is new insert node, right_left_rotate is like this:
+   P is new insert node, right_left_rotate(A) is like this:
+   A is the least_unbalanced_tree's root
 
      A                           A                              D
     / \                         / \                            / \
@@ -419,7 +422,8 @@ right_left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root)
 }
 
 /*
-   P is new insert node, left_right_rotate is like this:
+   P is new insert node, left_right_rotate(A) is like this:
+   A is the least_unbalanced_tree's root
 
          A                          A                           E 
         / \                        / \                         / \
