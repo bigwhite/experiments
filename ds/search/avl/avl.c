@@ -530,22 +530,22 @@ balance(struct avl_tree_t *t, struct avl_tree_node_t *node)
         switch (type) {
             case LL_ROTATE:
                 left_rotate(t, least_unbalanced_subtree_root);
-                printf("left rotate %d\n", least_unbalanced_subtree_root->value);
+                //printf("left rotate %d\n", least_unbalanced_subtree_root->value);
                 break;
 
             case LR_ROTATE:
                 left_right_rotate(t, least_unbalanced_subtree_root);
-                printf("left right rotate %d\n", least_unbalanced_subtree_root->value);
+                //printf("left right rotate %d\n", least_unbalanced_subtree_root->value);
                 break;
 
             case RL_ROTATE:
                 right_left_rotate(t, least_unbalanced_subtree_root);
-                printf("right left rotate %d\n", least_unbalanced_subtree_root->value);
+                //printf("right left rotate %d\n", least_unbalanced_subtree_root->value);
                 break;
 
             case RR_ROTATE:
                 right_rotate(t, least_unbalanced_subtree_root);
-                printf("right rotate %d\n", least_unbalanced_subtree_root->value);
+                //printf("right rotate %d\n", least_unbalanced_subtree_root->value);
                 break;
             default:
                 break;
@@ -676,8 +676,12 @@ main()
     printf("remove 12 = %d\n", avl_tree_remove_node(t, 12));
     avl_tree_levelorder_traverse(t);
 
-    avl_tree_free(&t);
+    for (i = 0; i < 10000; i++) {
+        avl_tree_insert_node(t, i);
+        printf("insert %d ok\n", i);
+    }
 
+    avl_tree_free(&t);
     return 0;
 }
 
