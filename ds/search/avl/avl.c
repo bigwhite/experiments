@@ -235,6 +235,7 @@ adjust_ancestor_height(const struct avl_tree_node_t *node, int *likely_unbalance
         if (height == parent->height) {
             return;
         } 
+        parent->height = height;
         parent = parent->parent;
     }
 }
@@ -391,7 +392,7 @@ static void
 left_rotate(struct avl_tree_t *t, struct avl_tree_node_t *subtree_root)
 {
     struct avl_tree_node_t *old_subtree_root = subtree_root;
-    struct avl_tree_node_t *new_subtree_root = subtree_root->left;
+    struct avl_tree_node_t *new_subtree_root = subtree_root->right;
 
     if (old_subtree_root->parent != NULL) {
         if (old_subtree_root->value > old_subtree_root->parent->value) {
@@ -499,6 +500,7 @@ is_balanced(const struct avl_tree_node_t *node)
         if (abs(factor) > 1) {
             return parent;
         }
+        parent = parent->parent;
     }
 
     return NULL;
@@ -515,7 +517,7 @@ recognize_rotate_type(struct avl_tree_node_t *least_unbalanced_subtree_root,
             return RL_ROTATE;
         }
     } else {
-        if (insert_node->value < least_unbalanced_subtree_root->right->value) {
+        if (insert_node->value < least_unbalanced_subtree_root->left->value) {
             return RR_ROTATE;
         } else {
             return LR_ROTATE;
@@ -544,18 +546,22 @@ balance(struct avl_tree_t *t, struct avl_tree_node_t *node)
     switch (type) {
         case LL_ROTATE:
             left_rotate(t, least_unbalanced_subtree_root);
+            printf("left rotate %d\n", least_unbalanced_subtree_root->value);
             break;
 
         case LR_ROTATE:
             left_right_rotate(t, least_unbalanced_subtree_root);
+            printf("left right rotate %d\n", least_unbalanced_subtree_root->value);
             break;
 
         case RL_ROTATE:
             right_left_rotate(t, least_unbalanced_subtree_root);
+            printf("right left rotate %d\n", least_unbalanced_subtree_root->value);
             break;
 
         case RR_ROTATE:
             right_rotate(t, least_unbalanced_subtree_root);
+            printf("right rotate %d\n", least_unbalanced_subtree_root->value);
             break;
         default:
             break;
@@ -575,7 +581,7 @@ main()
     }
     printf("create avl tree ok\n");
 
-    int arr[] = {8, 3, 10, 1, 6, 14, 4, 7, 13};
+    int arr[] = {15, 10, 4, 20, 30};
     int retv, i = 0;
     for (i = 0; i < sizeof(arr)/sizeof(arr[0]); i++) {
         if ((retv = avl_tree_insert_node(t, arr[i])) != 0) {
@@ -583,6 +589,7 @@ main()
             return -1;
         }
         printf("insert %d ok\n", arr[i]);
+        avl_tree_levelorder_traverse(t);
     }
 
     avl_tree_inorder_traverse(t);
