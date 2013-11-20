@@ -142,7 +142,7 @@ bst_remove_node(struct bst_t *t, int v)
      */
     if ((node->ln != NULL) && (node->rn != NULL)) {
         struct bst_node_t *sn = successor(node);
-        if (sn->value < node->value) {
+        if (sn->value < sn->pn->value) {
             sn->pn->ln = NULL; /* remove the successor node */
         } else {
             sn->pn->rn = NULL; /* remove the successor node */
