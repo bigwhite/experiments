@@ -89,6 +89,7 @@ bst_insert_node(struct bst_t *t, int v)
                 return 0;
             }
         } else { /* equal */
+            free(node);
             return -2; /* exist */
         }
     }
