@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Created-By: 1.7.0 (Oracle Corporation)
+Main-Class: com.helloworld.main.HelloWorld
+Class-Path: ../lib/Lib1.jar ../lib/Lib2.jar
+
