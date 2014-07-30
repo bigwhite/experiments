@@ -1,0 +1,6 @@
+This is a memcached-proxy demo implemented in golang.
+
+build:
+
+    $> cd memcached-proxy-demo
+    $> GOPATH=`pwd` make
