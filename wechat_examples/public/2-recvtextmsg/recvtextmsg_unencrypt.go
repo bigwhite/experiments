@@ -27,8 +27,7 @@ type TextRequestBody struct {
 	MsgId        int
 }
 
-/*
-type TextResponse struct {
+type TextResponseBody struct {
 	XMLName      xml.Name `xml:"xml"`
 	ToUserName   string
 	FromUserName string
@@ -36,7 +35,6 @@ type TextResponse struct {
 	MsgType      string
 	Content      string
 }
-*/
 
 func makeSignature(timestamp, nonce string) string {
 	sl := []string{token, timestamp, nonce}
@@ -72,13 +70,23 @@ func parseTextRequestBody(r *http.Request) *TextRequestBody {
 	return requestBody
 }
 
+func makeTextResponseBody(fromUserName, toUserName, content string) (data []byte) {
+	textResponseBody := &TextResponseBody{}
+	textResponseBody.FromUserName = fromUserName
+	textResponseBody.ToUserName = toUserName
+	textResponseBody.MsgType = "text"
+	textResponseBody.Content = content
+	textResponseBody.CreateTime = time.Duration(time.Now().Unix())
+	data, _ = xml.Marshal(textResponseBody)
+	return
+}
+
 func procRequest(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	if !validateUrl(w, r) {
 		log.Println("Wechat Service: this http request is not from Wechat platform!")
 		return
 	}
-	log.Println("Wechat Service: validateUrl Ok!")
 
 	if r.Method == "POST" {
 		textRequestBody := parseTextRequestBody(r)
@@ -86,6 +94,10 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("Wechat Service: Recv text msg [%s] from user [%s]!",
 				textRequestBody.Content,
 				textRequestBody.FromUserName)
+			responseTextBody := makeTextResponseBody(textRequestBody.ToUserName,
+				textRequestBody.FromUserName,
+				"Hello, "+textRequestBody.FromUserName)
+			fmt.Fprintf(w, string(responseTextBody))
 		}
 	}
 }
