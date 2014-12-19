@@ -97,6 +97,7 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 			responseTextBody := makeTextResponseBody(textRequestBody.ToUserName,
 				textRequestBody.FromUserName,
 				"Hello, "+textRequestBody.FromUserName)
+			w.Header().Set("Content-Type", "text/xml")
 			fmt.Fprintf(w, string(responseTextBody))
 		}
 	}
