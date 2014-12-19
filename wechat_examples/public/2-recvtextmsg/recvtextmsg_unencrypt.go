@@ -82,7 +82,7 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "POST" {
 		textRequestBody := parseTextRequestBody(r)
-		if textRequestBody {
+		if textRequestBody != nil {
 			fmt.Printf("Wechat Service: Recv text msg [%s] from user [%s]!",
 				textRequestBody.FromUserName,
 				textRequestBody.Content)
