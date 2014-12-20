@@ -98,8 +98,10 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 				textRequestBody.FromUserName,
 				"Hello, "+textRequestBody.FromUserName)
 			w.Header().Set("Content-Type", "text/xml")
+			w.WriteHeader(http.StatusOK)
 			fmt.Fprintf(w, string(responseTextBody))
 		}
+		fmt.Println(w.Header().Get("Content-Type"))
 	}
 }
 
