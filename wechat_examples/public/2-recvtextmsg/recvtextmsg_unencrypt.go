@@ -29,11 +29,21 @@ type TextRequestBody struct {
 
 type TextResponseBody struct {
 	XMLName      xml.Name `xml:"xml"`
-	ToUserName   string
-	FromUserName string
+	ToUserName   CDATAText
+	FromUserName CDATAText
 	CreateTime   time.Duration
-	MsgType      string
-	Content      string
+	MsgType      CDATAText
+	Content      CDATAText
+}
+
+/*
+type CDATAText struct {
+	Text []byte `xml:",innerxml"`
+}
+*/
+
+type CDATAText struct {
+	Text string `xml:",innerxml"`
 }
 
 func makeSignature(timestamp, nonce string) string {
@@ -70,15 +80,19 @@ func parseTextRequestBody(r *http.Request) *TextRequestBody {
 	return requestBody
 }
 
-func makeTextResponseBody(fromUserName, toUserName, content string) (data []byte) {
+func value2CDATA(v string) CDATAText {
+	//return CDATAText{[]byte("<![CDATA[" + v + "]]>")}
+	return CDATAText{"<![CDATA[" + v + "]]>"}
+}
+
+func makeTextResponseBody(fromUserName, toUserName, content string) ([]byte, error) {
 	textResponseBody := &TextResponseBody{}
-	textResponseBody.FromUserName = fromUserName
-	textResponseBody.ToUserName = toUserName
-	textResponseBody.MsgType = "text"
-	textResponseBody.Content = content
+	textResponseBody.FromUserName = value2CDATA(fromUserName)
+	textResponseBody.ToUserName = value2CDATA(toUserName)
+	textResponseBody.MsgType = value2CDATA("text")
+	textResponseBody.Content = value2CDATA(content)
 	textResponseBody.CreateTime = time.Duration(time.Now().Unix())
-	data, _ = xml.Marshal(textResponseBody)
-	return
+	return xml.MarshalIndent(textResponseBody, " ", "  ")
 }
 
 func procRequest(w http.ResponseWriter, r *http.Request) {
@@ -94,14 +108,17 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 			fmt.Printf("Wechat Service: Recv text msg [%s] from user [%s]!",
 				textRequestBody.Content,
 				textRequestBody.FromUserName)
-			responseTextBody := makeTextResponseBody(textRequestBody.ToUserName,
+			responseTextBody, err := makeTextResponseBody(textRequestBody.ToUserName,
 				textRequestBody.FromUserName,
 				"Hello, "+textRequestBody.FromUserName)
+			if err != nil {
+				log.Println("Wechat Service: makeTextResponseBody error: ", err)
+				return
+			}
 			w.Header().Set("Content-Type", "text/xml")
-			w.WriteHeader(http.StatusOK)
+			fmt.Println(string(responseTextBody))
 			fmt.Fprintf(w, string(responseTextBody))
 		}
-		fmt.Println(w.Header().Get("Content-Type"))
 	}
 }
 
