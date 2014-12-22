@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/rand"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/binary"
@@ -20,9 +21,8 @@ import (
 )
 
 const (
-	token = "wechat4go"
-	appID = "wx5b5c2614d269ddb2"
-	//appsecret      = "7d1b214e5dd5b66e4daf5e71ff1a253b"
+	token          = "wechat4go"
+	appID          = "wx5b5c2614d269ddb2"
 	encodingAESKey = "kZvGYbDKbtPbhv4LBWOcdsp5VktA3xe9epVhINevtGg"
 )
 
@@ -61,6 +61,14 @@ type EncryptRequestBody struct {
 	XMLName    xml.Name `xml:"xml"`
 	ToUserName string
 	Encrypt    string
+}
+
+type EncryptResponseBody struct {
+	XMLName      xml.Name `xml:"xml"`
+	Encrypt      CDATAText
+	MsgSignature CDATAText
+	TimeStamp    string
+	Nonce        CDATAText
 }
 
 /*
@@ -144,13 +152,99 @@ func makeTextResponseBody(fromUserName, toUserName, content string) ([]byte, err
 	return xml.MarshalIndent(textResponseBody, " ", "  ")
 }
 
+func makeEncryptResponseBody(fromUserName, toUserName, content, nonce, timestamp string) ([]byte, error) {
+	encryptBody := &EncryptResponseBody{}
+
+	encryptXmlData, _ := makeEncryptXmlData(fromUserName, toUserName, content)
+	encryptBody.Encrypt = value2CDATA(encryptXmlData)
+	encryptBody.MsgSignature = value2CDATA(makeMsgSignature(timestamp, nonce, encryptXmlData))
+	encryptBody.TimeStamp = timestamp
+	encryptBody.Nonce = value2CDATA(nonce)
+
+	return xml.MarshalIndent(encryptBody, " ", "  ")
+}
+
+func makeEncryptXmlData(fromUserName, toUserName, content string) (string, error) {
+	textResponseBody := &TextResponseBody{}
+	textResponseBody.FromUserName = value2CDATA(fromUserName)
+	textResponseBody.ToUserName = value2CDATA(toUserName)
+	textResponseBody.MsgType = value2CDATA("text")
+	textResponseBody.Content = value2CDATA(content)
+	textResponseBody.CreateTime = time.Duration(time.Now().Unix())
+	body, err := xml.MarshalIndent(textResponseBody, " ", "  ")
+	if err != nil {
+		return "", errors.New("xml marshal error")
+	}
+
+	buf := bytes.NewBuffer(make([]byte, 4))
+	binary.Write(buf, binary.BigEndian, len(body))
+	bodyLength := buf.Bytes()
+
+	xmlData := bytes.Join([][]byte{bodyLength, body, []byte(appID)}, nil)
+	return aesEncode(xmlData, realAESKey)
+}
+
+// PadLength calculates padding length, from github.com/vgorin/cryptogo
+func PadLength(slice_length, blocksize int) (padlen int) {
+	padlen = blocksize - slice_length%blocksize
+	if padlen == 0 {
+		padlen = blocksize
+	}
+	return padlen
+}
+
+//from github.com/vgorin/cryptogo
+func PKCS7Pad(message []byte, blocksize int) (padded []byte) {
+	// block size must be bigger or equal 2
+	if blocksize < 1<<1 {
+		panic("block size is too small (minimum is 2 bytes)")
+	}
+	// block size up to 255 requires 1 byte padding
+	if blocksize < 1<<8 {
+		// calculate padding length
+		padlen := PadLength(len(message), blocksize)
+
+		// define PKCS7 padding block
+		padding := bytes.Repeat([]byte{byte(padlen)}, padlen)
+
+		// apply padding
+		padded = append(message, padding...)
+		return padded
+	}
+	// block size bigger or equal 256 is not currently supported
+	panic("unsupported block size")
+}
+
+func aesEncode(data []byte, aesKey []byte) (string, error) {
+	if len(data)%aes.BlockSize != 0 {
+		data = PKCS7Pad(data, aes.BlockSize)
+	}
+
+	block, err := aes.NewCipher(aesKey)
+	if err != nil {
+		return "", err
+	}
+
+	encryptData := make([]byte, aes.BlockSize+len(data))
+	iv := encryptData[:aes.BlockSize]
+	//16B random number
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		panic(err)
+	}
+
+	blockMode := cipher.NewCBCEncrypter(block, iv)
+	blockMode.CryptBlocks(encryptData[aes.BlockSize:], data)
+
+	return base64.StdEncoding.EncodeToString(encryptData), nil
+}
+
 func aesDecode(encryptData string, aesKey []byte) ([]byte, error) {
 	data, err := base64.StdEncoding.DecodeString(encryptData)
 	if err != nil {
 		return nil, err
 	}
 
-	block, err := aes.NewCipher(realAESKey)
+	block, err := aes.NewCipher(aesKey)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +253,7 @@ func aesDecode(encryptData string, aesKey []byte) ([]byte, error) {
 		return nil, errors.New("crypto/cipher: ciphertext too short")
 	}
 
-	//iv := data[:aes.BlockSize]
-	iv := make([]byte, aes.BlockSize)
+	iv := data[:aes.BlockSize]
 	blockMode := cipher.NewCBCDecrypter(block, iv)
 
 	originData := make([]byte, len(data))
@@ -223,6 +316,22 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 			originData, _ := aesDecode(encryptRequestBody.Encrypt, realAESKey)
 			textRequestBody, _ := parseOriginalData(originData)
 			fmt.Println(textRequestBody)
+			fmt.Printf("Wechat Service: Recv text msg [%s] from user [%s]!",
+				textRequestBody.Content,
+				textRequestBody.FromUserName)
+
+			responseEncryptTextBody, _ := makeEncryptResponseBody(textRequestBody.ToUserName,
+				textRequestBody.FromUserName,
+				"Hello, "+textRequestBody.FromUserName,
+				nonce,
+				timestamp)
+			w.Header().Set("Content-Type", "text/xml")
+			fmt.Println("\n", string(responseEncryptTextBody))
+			fmt.Fprintf(w, string(responseEncryptTextBody))
+
+			originData1, _ := aesDecode(string(responseEncryptTextBody), realAESKey)
+			textRequestBody1, _ := parseOriginalData(originData1)
+			fmt.Println(textRequestBody1)
 
 		} else if encryptType == "raw" {
 			log.Println("Wechat Service: in raw mode")
