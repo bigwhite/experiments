@@ -29,13 +29,13 @@ const (
 
 var aesKey []byte
 
-func encodingAESKey2RealAESKey(wechatAESKey string) []byte {
-	data, _ := base64.StdEncoding.DecodeString(encodingAESKey + "=")
+func encodingAESKey2AESKey(encodingKey string) []byte {
+	data, _ := base64.StdEncoding.DecodeString(encodingKey + "=")
 	return data
 }
 
 func init() {
-	aesKey = encodingAESKey2RealAESKey(encodingAESKey)
+	aesKey = encodingAESKey2AESKey(encodingAESKey)
 }
 
 type TextRequestBody struct {
@@ -52,10 +52,9 @@ type TextResponseBody struct {
 	XMLName      xml.Name `xml:"xml"`
 	ToUserName   CDATAText
 	FromUserName CDATAText
-	//CreateTime   time.Duration
-	CreateTime string
-	MsgType    CDATAText
-	Content    CDATAText
+	CreateTime   string
+	MsgType      CDATAText
+	Content      CDATAText
 }
 
 type EncryptRequestBody struct {
@@ -235,8 +234,9 @@ func PKCS7Pad(message []byte, blocksize int) (padded []byte) {
 }
 
 func aesEncrypt(plainData []byte, aesKey []byte) ([]byte, error) {
-	if len(plainData)%len(aesKey) != 0 {
-		plainData = PKCS7Pad(plainData, len(aesKey))
+	k := len(aesKey)
+	if len(plainData)%k != 0 {
+		plainData = PKCS7Pad(plainData, k)
 	}
 	fmt.Printf("aesEncrypt: after padding, plainData length = %d\n", len(plainData))
 
@@ -289,11 +289,13 @@ func validateAppId(id []byte) bool {
 func parseEncryptTextRequestBody(plainText []byte) (*TextRequestBody, error) {
 	fmt.Println(string(plainText))
 
+	// Read length
 	buf := bytes.NewBuffer(plainText[16:20])
 	var length int32
 	binary.Read(buf, binary.BigEndian, &length)
 	fmt.Println(string(plainText[20 : 20+length]))
 
+	// appID validation
 	appIDstart := 20 + length
 	id := plainText[appIDstart : int(appIDstart)+len(appID)]
 	if !validateAppId(id) {
@@ -354,8 +356,6 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 		if encryptType == "aes" {
 			log.Println("Wechat Service: in safe mode")
 			encryptRequestBody := parseEncryptRequestBody(r)
-			fmt.Println("\n")
-			fmt.Println(encryptRequestBody.Encrypt)
 
 			// Validate msg signature
 			if !validateMsg(timestamp, nonce, encryptRequestBody.Encrypt, msgSignature) {
@@ -372,13 +372,13 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 			}
 
 			// AES Decrypt
-			plainText, err := aesDecrypt(cipherData, aesKey)
+			plainData, err := aesDecrypt(cipherData, aesKey)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 
-			textRequestBody, _ := parseEncryptTextRequestBody(plainText)
+			textRequestBody, _ := parseEncryptTextRequestBody(plainData)
 			fmt.Println(textRequestBody)
 			fmt.Printf("Wechat Service: Recv text msg [%s] from user [%s]!",
 				textRequestBody.Content,
