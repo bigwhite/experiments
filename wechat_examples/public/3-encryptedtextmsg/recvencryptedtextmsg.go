@@ -27,7 +27,7 @@ const (
 	encodingAESKey = "kZvGYbDKbtPbhv4LBWOcdsp5VktA3xe9epVhINevtGg"
 )
 
-var realAESKey []byte
+var aesKey []byte
 
 func encodingAESKey2RealAESKey(wechatAESKey string) []byte {
 	data, _ := base64.StdEncoding.DecodeString(encodingAESKey + "=")
@@ -35,8 +35,7 @@ func encodingAESKey2RealAESKey(wechatAESKey string) []byte {
 }
 
 func init() {
-	realAESKey = encodingAESKey2RealAESKey(encodingAESKey)
-	fmt.Println(len(realAESKey))
+	aesKey = encodingAESKey2RealAESKey(encodingAESKey)
 }
 
 type TextRequestBody struct {
@@ -186,15 +185,22 @@ func makeEncryptXmlData(fromUserName, toUserName, timestamp, content string) (st
 		return "", errors.New("xml marshal error")
 	}
 
-	buf := bytes.NewBuffer(make([]byte, 4))
-	fmt.Println("====len of body = ", len(body))
-	binary.Write(buf, binary.BigEndian, len(body))
+	buf := new(bytes.Buffer)
+	err = binary.Write(buf, binary.BigEndian, int32(len(body)))
+	if err != nil {
+		fmt.Println("Binary write err:", err)
+	}
 	bodyLength := buf.Bytes()
 
 	randomBytes := []byte("abcdefghijklmnop")
 
-	xmlData := bytes.Join([][]byte{randomBytes, bodyLength, body, []byte(appID)}, nil)
-	return aesEncode(xmlData, realAESKey)
+	plainData := bytes.Join([][]byte{randomBytes, bodyLength, body, []byte(appID)}, nil)
+	cipherData, err := aesEncrypt(plainData, aesKey)
+	if err != nil {
+		return "", errors.New("aesEncrypt error")
+	}
+
+	return base64.StdEncoding.EncodeToString(cipherData), nil
 }
 
 // PadLength calculates padding length, from github.com/vgorin/cryptogo
@@ -228,32 +234,33 @@ func PKCS7Pad(message []byte, blocksize int) (padded []byte) {
 	panic("unsupported block size")
 }
 
-func aesEncode(data []byte, aesKey []byte) (string, error) {
-	if len(data)%aes.BlockSize != 0 {
-		data = PKCS7Pad(data, aes.BlockSize)
+func aesEncrypt(plainData []byte, aesKey []byte) ([]byte, error) {
+	if len(plainData)%len(aesKey) != 0 {
+		plainData = PKCS7Pad(plainData, len(aesKey))
 	}
+	fmt.Printf("aesEncrypt: after padding, plainData length = %d\n", len(plainData))
 
 	block, err := aes.NewCipher(aesKey)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	encryptData := make([]byte, aes.BlockSize+len(data))
-	iv := encryptData[:aes.BlockSize]
+	iv := make([]byte, aes.BlockSize)
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		panic(err)
+		return nil, err
 	}
 
+	cipherData := make([]byte, len(plainData))
 	blockMode := cipher.NewCBCEncrypter(block, iv)
-	blockMode.CryptBlocks(encryptData[aes.BlockSize:], data)
+	blockMode.CryptBlocks(cipherData, plainData)
 
-	return base64.StdEncoding.EncodeToString(encryptData[aes.BlockSize:]), nil
+	return cipherData, nil
 }
 
-func aesDecode(encryptData string, aesKey []byte) ([]byte, error) {
-	data, err := base64.StdEncoding.DecodeString(encryptData)
-	if err != nil {
-		return nil, err
+func aesDecrypt(cipherData []byte, aesKey []byte) ([]byte, error) {
+	k := len(aesKey) //PKCS#7
+	if len(cipherData)%k != 0 {
+		return nil, errors.New("crypto/cipher: ciphertext size is not multiple of aes key length")
 	}
 
 	block, err := aes.NewCipher(aesKey)
@@ -261,20 +268,15 @@ func aesDecode(encryptData string, aesKey []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	if len(data) < aes.BlockSize {
-		return nil, errors.New("crypto/cipher: ciphertext too short")
+	iv := make([]byte, aes.BlockSize)
+	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
+		return nil, err
 	}
 
-	if len(data)%aes.BlockSize != 0 {
-		return nil, errors.New("crypto/cipher: ciphertext size is not correct")
-	}
-
-	iv := data[:aes.BlockSize]
 	blockMode := cipher.NewCBCDecrypter(block, iv)
-
-	originData := make([]byte, len(data))
-	blockMode.CryptBlocks(originData, data)
-	return originData, nil
+	plainData := make([]byte, len(cipherData))
+	blockMode.CryptBlocks(plainData, cipherData)
+	return plainData, nil
 }
 
 func validateAppId(id []byte) bool {
@@ -284,16 +286,16 @@ func validateAppId(id []byte) bool {
 	return false
 }
 
-func parseOriginalData(originData []byte) (*TextRequestBody, error) {
-	fmt.Println(string(originData))
+func parseEncryptTextRequestBody(plainText []byte) (*TextRequestBody, error) {
+	fmt.Println(string(plainText))
 
-	buf := bytes.NewBuffer(originData[16:20])
+	buf := bytes.NewBuffer(plainText[16:20])
 	var length int32
 	binary.Read(buf, binary.BigEndian, &length)
-	fmt.Println(string(originData[20 : 20+length]))
+	fmt.Println(string(plainText[20 : 20+length]))
 
 	appIDstart := 20 + length
-	id := originData[appIDstart : int(appIDstart)+len(appID)]
+	id := plainText[appIDstart : int(appIDstart)+len(appID)]
 	if !validateAppId(id) {
 		log.Println("Wechat Service: appid is invalid!")
 		return nil, errors.New("Appid is invalid")
@@ -301,7 +303,7 @@ func parseOriginalData(originData []byte) (*TextRequestBody, error) {
 	log.Println("Wechat Service: appid validation is ok!")
 
 	textRequestBody := &TextRequestBody{}
-	xml.Unmarshal(originData[20:20+length], textRequestBody)
+	xml.Unmarshal(plainText[20:20+length], textRequestBody)
 	return textRequestBody, nil
 }
 
@@ -314,13 +316,19 @@ func parseEncryptResponse(responseEncryptTextBody []byte) {
 		return
 	}
 
-	data, err := aesDecode(textResponseBody.Encrypt, realAESKey)
+	cipherData, err := base64.StdEncoding.DecodeString(textResponseBody.Encrypt)
+	if err != nil {
+		log.Println("Wechat Service: Decode base64 error:", err)
+		return
+	}
+
+	plainText, err := aesDecrypt(cipherData, aesKey)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(string(data))
+	fmt.Println(string(plainText))
 }
 
 func procRequest(w http.ResponseWriter, r *http.Request) {
@@ -332,10 +340,10 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 	encryptType := strings.Join(r.Form["encrypt_type"], "")
 	msgSignature := strings.Join(r.Form["msg_signature"], "")
 
-	fmt.Println("timestamp = ", timestamp)
-	fmt.Println("nonce= ", nonce)
-	fmt.Println("signature= ", signature)
-	fmt.Println("msgSignature=", msgSignature)
+	fmt.Println("timestamp =", timestamp)
+	fmt.Println("nonce =", nonce)
+	fmt.Println("signature =", signature)
+	fmt.Println("msgSignature =", msgSignature)
 
 	if !validateUrl(timestamp, nonce, signature) {
 		log.Println("Wechat Service: this http request is not from Wechat platform!")
@@ -348,19 +356,29 @@ func procRequest(w http.ResponseWriter, r *http.Request) {
 			encryptRequestBody := parseEncryptRequestBody(r)
 			fmt.Println("\n")
 			fmt.Println(encryptRequestBody.Encrypt)
+
+			// Validate msg signature
 			if !validateMsg(timestamp, nonce, encryptRequestBody.Encrypt, msgSignature) {
 				log.Println("Wechat Service: msg_signature is invalid")
 				return
 			}
 			log.Println("Wechat Service: msg_signature validation is ok!")
 
-			originData, err := aesDecode(encryptRequestBody.Encrypt, realAESKey)
+			// Decode base64
+			cipherData, err := base64.StdEncoding.DecodeString(encryptRequestBody.Encrypt)
+			if err != nil {
+				log.Println("Wechat Service: Decode base64 error:", err)
+				return
+			}
+
+			// AES Decrypt
+			plainText, err := aesDecrypt(cipherData, aesKey)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 
-			textRequestBody, _ := parseOriginalData(originData)
+			textRequestBody, _ := parseEncryptTextRequestBody(plainText)
 			fmt.Println(textRequestBody)
 			fmt.Printf("Wechat Service: Recv text msg [%s] from user [%s]!",
 				textRequestBody.Content,
