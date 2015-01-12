@@ -129,7 +129,7 @@ func main() {
 	fmt.Println(accessToken, expiresIn)
 
 	// Post custom service message
-	msg := "你好"
+	msg := "你好" + "\U0001f604"
 	err = pushCustomMsg(accessToken, openID, msg)
 	if err != nil {
 		log.Println("Push custom service message err:", err)
