@@ -13,6 +13,28 @@ import (
 	"sourcegraph.com/sourcegraph/appdash/sqltrace"
 )
 
+type MyEvent struct {
+	Name      string
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+func (e MyEvent) Schema() string {
+	return "MyEvent"
+}
+
+func (e MyEvent) Important() []string { return []string{"MyEvent", "MyEvent tag"} }
+
+// Start implements the appdash TimespanEvent interface by returning the time
+// at which the SQL query was sent out.
+func (e MyEvent) Start() time.Time { return e.StartTime }
+
+// End implements the appdash TimespanEvent interface by returning the time at
+// which the SQL query returned / was received.
+func (e MyEvent) End() time.Time { return e.EndTime }
+
+func init() { appdash.RegisterEvent(MyEvent{}) }
+
 func handleRequest(w http.ResponseWriter, r *http.Request) {
 	var result string
 	span := appdash.NewRootSpanID()
@@ -53,15 +75,25 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// A random length for the trace.
 	length := time.Duration(rand.Intn(1000)) * time.Millisecond
-	startTime := time.Now().Add(-time.Duration(rand.Intn(100)) * time.Minute)
+	StartTime := time.Now().Add(-time.Duration(rand.Intn(100)) * time.Minute)
 	traceRec.Event(&sqltrace.SQLEvent{
-		ClientSend: startTime,
-		ClientRecv: startTime.Add(length),
+		ClientSend: StartTime,
+		ClientRecv: StartTime.Add(length),
 		SQL:        "SELECT * FROM table_name;",
 		Tag:        fmt.Sprintf("fakeTag%d", rand.Intn(10)),
 	})
 
 	result += "sql event ok\n"
+
+	// self-customize event - MyEvent
+	StartTime = time.Now().Add(-time.Duration(rand.Intn(100)) * time.Minute)
+	traceRec.Event(&MyEvent{
+		Name:      "MyEvent example",
+		StartTime: StartTime,
+		EndTime:   StartTime.Add(length),
+	})
+	result += "MyEvent ok\n"
+
 	w.Write([]byte(result))
 }
 
