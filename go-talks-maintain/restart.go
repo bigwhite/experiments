@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"strings"
 	//"time"
 
@@ -17,13 +17,13 @@ func main() {
 	s := sh.NewSession()
 	o, e := s.Command("lsof", "-i", `tcp:8080`).Output()
 	if e != nil {
-		fmt.Println("lsof error", e)
+		log.Println("lsof error", e)
 		return
 	}
 
 	resultOflsof := string(o)
-	fmt.Println("lsof result:")
-	fmt.Println(resultOflsof)
+	log.Println("lsof result:")
+	log.Println(resultOflsof)
 
 	a := strings.Split(resultOflsof, "\n")
 	var final string
@@ -36,30 +36,29 @@ func main() {
 
 	o, e = s.Command("echo", final).Command("awk", []string{"{print $2}"}).Output()
 	if e != nil {
-		fmt.Println("awk error", e)
+		log.Println("awk error", e)
 		return
 	}
 
 	pid := string(o)
 	pid = strings.TrimSpace(pid)
-	fmt.Printf("find pid = %s\n", pid)
+	log.Printf("find pid = %s\n", pid)
 
 	e = s.Command("kill", pid).Run()
 	if e != nil {
-		fmt.Println("kill error", e)
+		log.Println("kill error", e)
 		return
 	}
 
+	//supervisor will restart the go-talks service automatically.
 
-//supervisor will restart the go-talks service automatically.
+	/*
+		time.Sleep(time.Second * 3)
 
-/*
-	time.Sleep(time.Second * 3)
-
-	e = s.Command("supervisorctl", "start", "go-talks").Run()
-	if e != nil {
-		fmt.Println("supervisorctl error", e)
-		return
-	}
-*/
+		e = s.Command("supervisorctl", "start", "go-talks").Run()
+		if e != nil {
+			log.Println("supervisorctl error", e)
+			return
+		}
+	*/
 }
