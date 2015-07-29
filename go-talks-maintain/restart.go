@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"strings"
-	//"time"
+	"time"
 
 	"github.com/codeskyblue/go-sh"
 )
@@ -13,12 +13,12 @@ const (
 	lsofKeyWord2 = "root"
 )
 
-func main() {
+func resloveServicePID() string {
 	s := sh.NewSession()
 	o, e := s.Command("lsof", "-i", `tcp:8080`).Output()
 	if e != nil {
 		log.Println("lsof error", e)
-		return
+		return ""
 	}
 
 	resultOflsof := string(o)
@@ -37,28 +37,40 @@ func main() {
 	o, e = s.Command("echo", final).Command("awk", []string{"{print $2}"}).Output()
 	if e != nil {
 		log.Println("awk error", e)
-		return
+		return ""
 	}
 
 	pid := string(o)
 	pid = strings.TrimSpace(pid)
 	log.Printf("find pid = %s\n", pid)
+	return pid
+}
 
-	e = s.Command("kill", pid).Run()
-	if e != nil {
-		log.Println("kill error", e)
-		return
+func main() {
+	s := sh.NewSession()
+
+	pid := resloveServicePID()
+	if pid != "" {
+		e := s.Command("kill", pid).Run()
+		if e != nil {
+			log.Println("kill error", e)
+			return
+		}
 	}
 
-	//supervisor will restart the go-talks service automatically.
+	time.Sleep(time.Second * 5)
 
-	/*
-		time.Sleep(time.Second * 3)
-
-		e = s.Command("supervisorctl", "start", "go-talks").Run()
+	//Although supervisor will restart the go-talks service automatically, but
+	//when memory not enough, supervisor will stop restarting when restart go-talks three times.
+	//so each restart stage, we are trying to re-detect whether service being restarted
+	//if not, restart the service. we don't care failing.
+	pid = resloveServicePID()
+	if pid == "" {
+		e := s.Command("supervisorctl", "restart", "go-talks").Run()
 		if e != nil {
 			log.Println("supervisorctl error", e)
 			return
 		}
-	*/
+		log.Println("restart go-talks ok")
+	}
 }
