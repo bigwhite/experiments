@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"strings"
+	//"time"
 
 	"github.com/codeskyblue/go-sh"
 )
 
 const (
-	lsofKeyWord1 = "Python"
-	lsofKeyWord2 = "tony"
+	lsofKeyWord1 = "python"
+	lsofKeyWord2 = "root"
 )
 
 func main() {
@@ -48,4 +49,17 @@ func main() {
 		fmt.Println("kill error", e)
 		return
 	}
+
+
+//supervisor will restart the go-talks service automatically.
+
+/*
+	time.Sleep(time.Second * 3)
+
+	e = s.Command("supervisorctl", "start", "go-talks").Run()
+	if e != nil {
+		fmt.Println("supervisorctl error", e)
+		return
+	}
+*/
 }
