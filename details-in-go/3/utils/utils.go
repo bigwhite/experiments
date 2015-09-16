@@ -23,10 +23,16 @@ import (
 func DumpMethodSet(i interface{}) {
 	v := reflect.TypeOf(i)
 	elemTyp := v.Elem()
-	fmt.Printf("=====%s's method sets =======\n", elemTyp)
+
 	n := elemTyp.NumMethod()
-	for j := 0; j < n; j++ {
-		fmt.Println(elemTyp.Method(j).Name)
+	if n == 0 {
+		fmt.Printf("%s's method set is empty!\n", elemTyp)
+		return
 	}
-	fmt.Printf("=====%s's method sets end =======\n\n", elemTyp)
+
+	fmt.Printf("%s's method sets:\n", elemTyp)
+	for j := 0; j < n; j++ {
+		fmt.Println("\t", elemTyp.Method(j).Name)
+	}
+	fmt.Printf("\n")
 }

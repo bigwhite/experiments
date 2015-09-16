@@ -31,4 +31,7 @@ func main() {
 	// var i I = t // cannot use t (type T) as type I in assignment: T does not implement I (Method2 method has pointer receiver)
 	var i I = pt
 	i.Method1()
+
+	pt.Method1()
+	t.Method3()
 }
