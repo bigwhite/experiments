@@ -10,20 +10,18 @@ import (
 
 func handleConn(c net.Conn) {
 	defer c.Close()
+	time.Sleep(time.Second * 10)
 	for {
 		// read from the connection
-		time.Sleep(10 * time.Second)
-		var buf = make([]byte, 65536)
+		time.Sleep(5 * time.Second)
+		var buf = make([]byte, 60000)
 		log.Println("start to read from conn")
-		//c.SetReadDeadline(time.Now().Add(time.Microsecond * 10))//conn read 0 bytes,  error: read tcp 127.0.0.1:8888->127.0.0.1:60763: i/o timeout
-		c.SetReadDeadline(time.Now().Add(time.Microsecond * 10))
 		n, err := c.Read(buf)
 		if err != nil {
 			log.Printf("conn read %d bytes,  error: %s", n, err)
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				continue
 			}
-			return
 		}
 
 		log.Printf("read %d bytes, content is %s\n", n, string(buf[:n]))
