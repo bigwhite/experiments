@@ -22,6 +22,7 @@ func handleConn(c net.Conn) {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				continue
 			}
+			break
 		}
 
 		log.Printf("read %d bytes, content is %s\n", n, string(buf[:n]))
