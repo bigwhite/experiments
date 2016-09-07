@@ -1,0 +1,114 @@
+" 
+" this config is inspired by
+" vim-go-tutorial(https://github.com/fatih/vim-go-tutorial) written by fatih,
+" the author of vim-go (https://github.com/fatih/vim-go)
+
+
+set nocompatible              " be iMproved, required
+filetype off                  " required
+
+set autowrite
+set updatetime=100
+
+"set tabstop=4
+"set shiftwidth=4
+
+autocmd BufNewFile,BufRead *.go setlocal noexpandtab tabstop=4 shiftwidth=4 
+
+call plug#begin()
+Plug 'fatih/vim-go'
+Plug 'AndrewRadev/splitjoin.vim'
+Plug 'SirVer/ultisnips'
+Plug 'ctrlpvim/ctrlp.vim'
+call plug#end()
+
+filetype plugin indent on    " required
+
+" set mapleader
+let mapleader = ","
+
+" vim-go custom mappings
+au FileType go nmap <leader>r <Plug>(go-run)
+au FileType go nmap <leader>b <Plug>(go-build)
+au FileType go nmap <leader>t <Plug>(go-test)
+au FileType go nmap <leader>tf <Plug>(go-test-func)
+
+au FileType go nmap <Leader>s <Plug>(go-implements)
+au FileType go nmap <Leader>i <Plug>(go-info)
+au FileType go nmap <Leader>gd <Plug>(go-doc)
+au FileType go nmap <Leader>gv <Plug>(go-doc-vertical)
+au FileType go nmap <leader>c <Plug>(go-coverage)
+au FileType go nmap <Leader>ds <Plug>(go-def-split)
+au FileType go nmap <Leader>dv <Plug>(go-def-vertical)
+au FileType go nmap <Leader>dt <Plug>(go-def-tab)
+au FileType go nmap <Leader>e <Plug>(go-rename)
+
+autocmd Filetype go command! -bang A call go#alternate#Switch(<bang>0, 'edit')
+autocmd Filetype go command! -bang AV call go#alternate#Switch(<bang>0, 'vsplit')
+autocmd Filetype go command! -bang AS call go#alternate#Switch(<bang>0, 'split')
+autocmd Filetype go command! -bang AT call go#alternate#Switch(<bang>0, 'tabe')
+
+"for quickfix window navigate
+map <C-n> :cnext<CR>
+map <C-m> :cprevious<CR>
+nnoremap <leader>a :cclose<CR>
+
+" vim-go settings
+let g:go_fmt_command = "goimports"
+let g:go_list_type = "quickfix"
+let g:go_test_timeout = '10s'
+
+let g:go_fmt_fail_silently = 1
+let g:go_snippet_case_type = "camelcase"
+
+let g:go_auto_type_info = 1
+
+let g:go_auto_sameids = 1
+
+
+" beautify go code
+"let g:go_highlight_types = 1
+"let g:go_highlight_fields = 1
+"let g:go_highlight_functions = 1
+"let g:go_highlight_methods = 1
+"let g:go_highlight_operators = 1
+"let g:go_highlight_extra_types = 1
+"let g:go_highlight_build_constraints = 1
+"let g:go_highlight_generate_tags = 1
+
+" UltiSnips settings
+let g:UltiSnipsExpandTrigger="<tab>"
+let g:UltiSnipsJumpForwardTrigger="<c-k>"
+let g:UltiSnipsJumpBackwardTrigger="<c-j>" 
+
+" YCM settings
+" let g:ycm_key_list_select_completion = ['<Enter>', '<Down>']
+let g:ycm_key_list_select_completion = ['<c-l>']
+let g:ycm_key_list_previous_completion = ['<S-Enter>', '<Up>']
+let g:ycm_key_invoke_completion = '<C-Space>'
+
+
+set rtp+=/Users/tony/Test/GoToolsProjects/src/github.com/golang/lint/misc/vim
+
+syntax on 
+au BufRead,BufNewFile *.go set filetype=go
+let g:rehash256 = 1
+let g:molokai_original = 1
+colorscheme molokai
+
+
+" NERDTree settings
+" autocmd vimenter * NERDTree
+autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTreeType") && b:NERDTreeType == "primary") | q | endif
+map <C-t> :NERDTreeToggle<CR>
+" autocmd BufWritePost,FileWritePost *.go execute 'Lint' | cwindow
+
+
+" for vim-markdown
+let g:vim_markdown_folding_disabled=1
+
+
+let g:go_metalinter_enabled = ['vet', 'golint', 'errcheck']
+let g:go_metalinter_autosave = 1
+let g:go_metalinter_autosave_enabled = ['vet', 'golint']
+let g:go_metalinter_deadline = "5s"
