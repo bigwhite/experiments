@@ -3,13 +3,15 @@ package main
 import (
 	"fmt"
 	"plugin"
+	"time"
 )
 
 func init() {
 	fmt.Println("init in main program")
 }
 
-func main() {
+func loadPlugin(i int) {
+	fmt.Println("load plugin #", i)
 	var err error
 	fmt.Println("before opening the foo.so")
 
@@ -46,5 +48,15 @@ func main() {
 		fmt.Println("plugin Lookup symbol v error:", err)
 	} else {
 		fmt.Println(*v.(*int))
+	}
+	fmt.Println("load plugin #", i, "done")
+}
+
+func main() {
+	var counter int = 1
+	for {
+		loadPlugin(counter)
+		counter++
+		time.Sleep(time.Second * 30)
 	}
 }
