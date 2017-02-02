@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	p, _ = plugin.Open("foo.so")
-	f := p.Lookup("Foo")
+	p, _ := plugin.Open("foo.so")
+	f, _ := p.Lookup("Foo")
 	fmt.Println(f.(func(string) string)("gophers"))
 }
