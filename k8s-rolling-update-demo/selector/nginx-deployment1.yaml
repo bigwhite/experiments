@@ -1,0 +1,18 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx-deployment1
+spec:
+  replicas: 2 
+  template:
+    metadata:
+      labels:
+        app: guestbook
+        tier: frontend
+        track: stable
+    spec:
+      containers:
+      - name: nginx1
+        image: nginx:1.10.1
+        ports:
+        - containerPort: 80

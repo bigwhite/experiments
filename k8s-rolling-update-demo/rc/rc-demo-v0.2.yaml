@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: rc-demo-nginx-v0.2
+spec:
+  replicas: 4
+  selector:
+    app: rc-demo-nginx
+    ver: v0.2
+  template:
+    metadata:
+      labels:
+        app: rc-demo-nginx
+        ver: v0.2
+    spec:
+      containers:
+        - name: rc-demo-nginx
+          image: nginx:1.11.9
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          env:
+            - name: RC_DEMO_VER
+              value: v0.2

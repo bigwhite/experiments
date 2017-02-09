@@ -1,0 +1,6 @@
+{
+	"name" : "deployment-demo",
+	"rollbackTo" : {
+		"revision" : 0
+	}
+}

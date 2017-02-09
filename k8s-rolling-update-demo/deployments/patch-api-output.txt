@@ -1,0 +1,93 @@
+# curl -H 'Content-Type:application/strategic-merge-patch+json' -X PATCH --data @deployment-demo-v0.2.json http://localhost:8080/apis/extensions/v1beta1/namespaces/default/deployments/deployment-demo
+{
+  "kind": "Deployment",
+  "apiVersion": "extensions/v1beta1",
+  "metadata": {
+    "name": "deployment-demo",
+    "namespace": "default",
+    "selfLink": "/apis/extensions/v1beta1/namespaces/default/deployments/deployment-demo",
+    "uid": "3d7739c1-ee05-11e6-8577-00163e1001d7",
+    "resourceVersion": "4431098",
+    "generation": 9,
+    "creationTimestamp": "2017-02-08T13:48:15Z",
+    "labels": {
+      "app": "deployment-demo-nginx",
+      "version": "v0.1"
+    },
+    "annotations": {
+      "deployment.kubernetes.io/revision": "7",
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"kind\":\"Deployment\",\"apiVersion\":\"extensions/v1beta1\",\"metadata\":{\"name\":\"deployment-demo\",\"creationTimestamp\":null},\"spec\":{\"replicas\":4,\"selector\":{\"matchLabels\":{\"app\":\"deployment-demo-nginx\"}},\"template\":{\"metadata\":{\"creationTimestamp\":null,\"labels\":{\"app\":\"deployment-demo-nginx\",\"version\":\"v0.2\"}},\"spec\":{\"containers\":[{\"name\":\"deployment-demo\",\"image\":\"nginx:1.11.9\",\"ports\":[{\"containerPort\":80,\"protocol\":\"TCP\"}],\"env\":[{\"name\":\"DEPLOYMENT_DEMO_VER\",\"value\":\"v0.2\"}],\"resources\":{}}]}},\"strategy\":{},\"minReadySeconds\":10},\"status\":{}}",
+      "kubernetes.io/change-cause": "kubectl create -f deployment-demo-v0.1.yaml --record"
+    }
+  },
+  "spec": {
+    "replicas": 4,
+    "selector": {
+      "matchLabels": {
+        "app": "deployment-demo-nginx"
+      }
+    },
+    "template": {
+      "metadata": {
+        "creationTimestamp": null,
+        "labels": {
+          "app": "deployment-demo-nginx",
+          "version": "v0.2"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "deployment-demo",
+            "image": "nginx:1.11.9",
+            "ports": [
+              {
+                "containerPort": 80,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "DEPLOYMENT_DEMO_VER",
+                "value": "v0.2"
+              }
+            ],
+            "resources": {},
+            "terminationMessagePath": "/dev/termination-log",
+            "imagePullPolicy": "IfNotPresent"
+          }
+        ],
+        "restartPolicy": "Always",
+        "terminationGracePeriodSeconds": 30,
+        "dnsPolicy": "ClusterFirst",
+        "securityContext": {}
+      }
+    },
+    "strategy": {
+      "type": "RollingUpdate",
+      "rollingUpdate": {
+        "maxUnavailable": 1,
+        "maxSurge": 1
+      }
+    },
+    "minReadySeconds": 10
+  },
+  "status": {
+    "observedGeneration": 8,
+    "replicas": 4,
+    "updatedReplicas": 4,
+    "availableReplicas": 3,
+    "unavailableReplicas": 1,
+    "conditions": [
+      {
+        "type": "Available",
+        "status": "True",
+        "lastUpdateTime": "2017-02-08T13:48:26Z",
+        "lastTransitionTime": "2017-02-08T13:48:26Z",
+        "reason": "MinimumReplicasAvailable",
+        "message": "Deployment has minimum availability."
+      }
+    ]
+  }
+}
+

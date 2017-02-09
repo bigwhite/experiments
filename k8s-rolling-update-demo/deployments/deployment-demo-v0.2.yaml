@@ -1,0 +1,25 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: deployment-demo
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: deployment-demo-nginx
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: deployment-demo-nginx
+        version: v0.2
+    spec:
+      containers:
+        - name: deployment-demo
+          image: nginx:1.11.9
+          ports:
+            - containerPort: 80
+              protocol: TCP
+          env:
+            - name: DEPLOYMENT_DEMO_VER
+              value: v0.2
