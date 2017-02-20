@@ -1,19 +1,18 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: my-nginx
+  name: my-testpod
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        run: my-nginx
+        run: my-testpod
     spec:
       containers:
-      - name: my-nginx
-        image: nginx:1.10.1
-        ports:
-        - containerPort: 80
+      - name: my-testpod
+        image: 1404podimage:latest
+        imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: tz-config
           mountPath: /etc/localtime
@@ -21,3 +20,5 @@ spec:
       - name: tz-config
         hostPath:
           path: /etc/localtime
+      nodeSelector:
+        zone: ceph
