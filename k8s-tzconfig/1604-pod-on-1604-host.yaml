@@ -1,0 +1,24 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: my-testpod
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        run: my-testpod
+    spec:
+      containers:
+      - name: my-testpod
+        image: 1604podimage:latest
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: tz-config
+          mountPath: /etc/localtime
+      volumes:
+      - name: tz-config
+        hostPath:
+          path: /usr/share/zoneinfo/Asia/Shanghai
+      nodeSelector:
+        kubernetes.io/hostname: iz25beglnhtz
