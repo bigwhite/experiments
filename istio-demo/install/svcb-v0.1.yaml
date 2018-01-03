@@ -1,0 +1,32 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: svcb
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: svcb
+        version: v0.1
+    spec:
+      containers:
+      - name: svcb
+        command: ["/root/svcb/svcb", "-msgsvc", "10.100.35.27:9997"]
+        image: docker.io/bigwhite/istio-demo-svcb:v0.1
+        imagePullPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svcb
+  labels:
+    app: svcb
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: svcb

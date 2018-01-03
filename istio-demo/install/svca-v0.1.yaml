@@ -1,0 +1,30 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: svca
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: svca
+        version: v0.1
+    spec:
+      containers:
+      - name: svca
+        image: docker.io/bigwhite/istio-demo-svca:v0.1
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: svca
+  labels:
+    app: svca
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: svca
