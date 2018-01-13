@@ -1,0 +1,9 @@
+/data/tonybai/test/go/app.log {
+  rotate 7
+  daily
+  size=10M
+  compress
+  dateext
+  missingok
+  copytruncate
+}
