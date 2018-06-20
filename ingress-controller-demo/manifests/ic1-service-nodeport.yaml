@@ -11,5 +11,10 @@ spec:
     targetPort: 80
     nodePort: 30090
     protocol: TCP
+  - name: tcp
+    port: 8080
+    targetPort: 8080
+    nodePort: 30070
+    protocol: TCP
   selector:
     app: ingress-nginx-ic1
