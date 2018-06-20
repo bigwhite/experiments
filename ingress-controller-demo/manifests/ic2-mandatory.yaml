@@ -1,0 +1,92 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: nginx-configuration-ic2
+  namespace: ingress-nginx-demo
+  labels:
+    app: ingress-nginx
+---
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: tcp-services-ic2
+  namespace: ingress-nginx-demo
+data:
+  30071: "default/ic2-svc6:8080"
+---
+
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: udp-services-ic2
+  namespace: ingress-nginx-demo
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx-ingress-controller-ic2
+  namespace: ingress-nginx-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ingress-nginx-ic2
+  template:
+    metadata:
+      labels:
+        app: ingress-nginx-ic2
+      annotations:
+        prometheus.io/port: '10254'
+        prometheus.io/scrape: 'true'
+    spec:
+      serviceAccountName: nginx-ingress-serviceaccount
+      containers:
+        - name: nginx-ingress-controller-ic2
+          image: quay.io/kubernetes-ingress-controller/nginx-ingress-controller:0.15.0
+          args:
+            - /nginx-ingress-controller
+            - --default-backend-service=$(POD_NAMESPACE)/default-http-backend
+            - --configmap=$(POD_NAMESPACE)/nginx-configuration-ic2
+            - --tcp-services-configmap=$(POD_NAMESPACE)/tcp-services-ic2
+            - --udp-services-configmap=$(POD_NAMESPACE)/udp-services-ic2
+            - --publish-service=$(POD_NAMESPACE)/ingress-nginx-ic2
+            - --annotations-prefix=nginx.ingress.kubernetes.io
+            - --ingress-class=ic2
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          ports:
+          - name: http
+            containerPort: 80
+          - name: https
+            containerPort: 443
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: 10254
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          securityContext:
+            runAsNonRoot: false

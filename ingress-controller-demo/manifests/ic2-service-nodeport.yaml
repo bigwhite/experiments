@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-ic2
+  namespace: ingress-nginx-demo
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    nodePort: 30091
+    protocol: TCP
+  - name: tcp
+    port: 30071
+    targetPort: 30071
+    nodePort: 30071
+    protocol: TCP
+  selector:
+    app: ingress-nginx-ic2

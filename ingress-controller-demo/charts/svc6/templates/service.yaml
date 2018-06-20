@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "svc6.fullname" . }}
+  labels:
+    app: {{ template "svc6.name" . }}
+    chart: {{ template "svc6.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: tcp
+      protocol: TCP
+      name: tcp
+  selector:
+    app: {{ template "svc6.name" . }}
+    release: {{ .Release.Name }}
