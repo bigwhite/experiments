@@ -3,7 +3,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: nginx-configuration-ic1
-  namespace: ingress-nginx
+  namespace: ingress-nginx-demo
   labels:
     app: ingress-nginx
 ---
@@ -12,7 +12,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: tcp-services-ic1
-  namespace: ingress-nginx
+  namespace: ingress-nginx-demo
 data:
   30070: "default/ic1-svc3:8080"
 ---
@@ -21,14 +21,14 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: udp-services-ic1
-  namespace: ingress-nginx
+  namespace: ingress-nginx-demo
 ---
 
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: nginx-ingress-controller-ic1
-  namespace: ingress-nginx 
+  namespace: ingress-nginx-demo
 spec:
   replicas: 1
   selector:
