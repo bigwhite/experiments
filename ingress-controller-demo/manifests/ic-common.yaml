@@ -151,6 +151,7 @@ rules:
       # when launching the nginx-ingress-controller.
       - "ingress-controller-leader-ic1"
       - "ingress-controller-leader-ic2"
+      - "ingress-controller-leader-ic3"
     verbs:
       - get
       - update
