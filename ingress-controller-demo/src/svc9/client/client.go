@@ -8,17 +8,17 @@ import (
 )
 
 func main() {
-/*
-	pool := x509.NewCertPool()
-	caCertPath := "rootCA.pem"
+	/*
+		pool := x509.NewCertPool()
+		caCertPath := "rootCA.pem"
 
-	caCrt, err := ioutil.ReadFile(caCertPath)
-	if err != nil {
-		fmt.Println("ReadFile err:", err)
-		return
-	}
-	pool.AppendCertsFromPEM(caCrt)
-*/
+		caCrt, err := ioutil.ReadFile(caCertPath)
+		if err != nil {
+			fmt.Println("ReadFile err:", err)
+			return
+		}
+		pool.AppendCertsFromPEM(caCrt)
+	*/
 
 	cliCrt, err := tls.LoadX509KeyPair("client.crt", "client.key")
 	if err != nil {
@@ -26,12 +26,11 @@ func main() {
 		return
 	}
 
-
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			//RootCAs:      pool,
-			Certificates: []tls.Certificate{cliCrt},
-InsecureSkipVerify: true,
+			Certificates:       []tls.Certificate{cliCrt},
+			InsecureSkipVerify: true,
 		},
 	}
 	client := &http.Client{Transport: tr}
