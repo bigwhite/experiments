@@ -152,6 +152,7 @@ rules:
       - "ingress-controller-leader-ic1"
       - "ingress-controller-leader-ic2"
       - "ingress-controller-leader-ic3"
+      - "ingress-controller-leader-ic4"
     verbs:
       - get
       - update

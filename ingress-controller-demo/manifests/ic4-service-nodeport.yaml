@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-ic4
+  namespace: ingress-nginx-demo
+spec:
+  type: NodePort
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+    nodePort: 30093
+    protocol: TCP
+  selector:
+    app: ingress-nginx-ic4
