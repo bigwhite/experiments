@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "svc9.fullname" . }}
+  labels:
+    app: {{ template "svc9.name" . }}
+    chart: {{ template "svc9.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: https
+      protocol: TCP
+      name: https
+  selector:
+    app: {{ template "svc9.name" . }}
+    release: {{ .Release.Name }}

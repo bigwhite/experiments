@@ -2,13 +2,13 @@ package main
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 )
 
 func main() {
+/*
 	pool := x509.NewCertPool()
 	caCertPath := "rootCA.pem"
 
@@ -18,6 +18,7 @@ func main() {
 		return
 	}
 	pool.AppendCertsFromPEM(caCrt)
+*/
 
 	cliCrt, err := tls.LoadX509KeyPair("client.crt", "client.key")
 	if err != nil {
@@ -25,14 +26,16 @@ func main() {
 		return
 	}
 
+
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			RootCAs:      pool,
+			//RootCAs:      pool,
 			Certificates: []tls.Certificate{cliCrt},
+InsecureSkipVerify: true,
 		},
 	}
 	client := &http.Client{Transport: tr}
-	resp, err := client.Get("https://localhost:8080")
+	resp, err := client.Get("https://svc9.tonybai.com:30093")
 
 	if err != nil {
 		// handle error
