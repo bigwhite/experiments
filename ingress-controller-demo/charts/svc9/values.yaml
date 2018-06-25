@@ -11,13 +11,14 @@ image:
 
 service:
   type: ClusterIP
-  port: 80
+  port: 443
 
 ingress:
   enabled: true
   annotations:
     kubernetes.io/ingress.class: ic3
     nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    #nginx.ingress.kubernetes.io/secure-backends: "true"
   path: /
   hosts:
     - svc9.tonybai.com
