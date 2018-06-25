@@ -35,7 +35,7 @@ InsecureSkipVerify: true,
 		},
 	}
 	client := &http.Client{Transport: tr}
-	resp, err := client.Get("https://svc9.tonybai.com:30093")
+	resp, err := client.Get("https://svc9.tonybai.com:30092")
 
 	if err != nil {
 		// handle error

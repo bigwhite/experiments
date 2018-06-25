@@ -52,6 +52,7 @@ spec:
             - --udp-services-configmap=$(POD_NAMESPACE)/udp-services-ic3
             - --publish-service=$(POD_NAMESPACE)/ingress-nginx-ic3
             - --annotations-prefix=nginx.ingress.kubernetes.io
+            - --enable-ssl-passthrough
             - --ingress-class=ic3
           env:
             - name: POD_NAME
