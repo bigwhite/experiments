@@ -58,9 +58,9 @@ func BenchmarkMarshalInParalell(b *testing.B) {
 }
 func BenchmarkUnmarshalParalell(b *testing.B) {
 	b.ReportAllocs()
-	var request submit.Request
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
+			var request submit.Request
 			_ = proto.Unmarshal(requestToUnMarshal, &request)
 		}
 	})
