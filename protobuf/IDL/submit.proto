@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option go_package = ".;submit";
+
+package submit;
+
+message request {
+        int64 recvtime = 1;
+        string uniqueid = 2;
+        string token = 3;
+        string phone = 4;
+        string content = 5;
+        string sign = 6;
+        string type = 7;
+        string extend = 8;
+        string version = 9;
+}
