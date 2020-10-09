@@ -84,7 +84,7 @@ func (m *Map) Dump() {
 
 	// dump expunged
 	fmt.Printf("\t expunged:%#v\n", expunged)
-	fmt.Printf("<===== sync.Map:\n")
+	fmt.Printf("<===== sync.Map\n")
 }
 
 // readOnly is an immutable struct stored atomically in the Map.read field.
