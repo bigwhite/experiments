@@ -20,7 +20,7 @@ func main() {
 		go func(i int) {
 			for j := 0; j < 100; j++ {
 				n := rand.Intn(100)
-				fmt.Printf("goroutine[%d] read m[%d]: %d\n", i, n, n)
+				fmt.Printf("goroutine[%d] read m[%d]: %d\n", i, n, m[n])
 			}
 			wg.Done()
 		}(i)
