@@ -11,7 +11,6 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", Index)
 	var s = http.Server{
 		Addr:    ":8080",
 		Handler: http.HandlerFunc(Index),
