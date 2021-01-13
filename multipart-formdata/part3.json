@@ -1,0 +1,12 @@
+{
+	"authors": [
+		"russcox": {
+			"corp": "google"
+			"age": 31
+		},
+		"davecheney": {
+			"corp": "unknown"
+			"age": 32
+		}
+	]
+}
