@@ -11,6 +11,7 @@ const uploadPath = "./upload"
 
 func handleUploadFile(w http.ResponseWriter, r *http.Request) {
 	r.ParseMultipartForm(100)
+	fmt.Printf("http request: %#v\n", *r)
 	mForm := r.MultipartForm
 
 	for k, _ := range mForm.File {

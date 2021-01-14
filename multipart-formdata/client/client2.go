@@ -10,6 +10,7 @@ import (
 	"net/textproto"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var (
@@ -37,6 +38,12 @@ func main() {
 	fmt.Printf("upload file [%s] ok\n", filePath)
 }
 
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
 func createReqBody(filePath string) (string, io.Reader, error) {
 	var err error
 
@@ -62,7 +69,7 @@ func createReqBody(filePath string) (string, io.Reader, error) {
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
-			"file1", fileName))
+			escapeQuotes("file1"), escapeQuotes(fileName)))
 	h.Set("Content-Type", "text/plain")
 	fw1, _ := bw.CreatePart(h)
 	io.Copy(fw1, f)
