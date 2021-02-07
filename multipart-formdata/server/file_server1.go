@@ -14,7 +14,7 @@ func handleUploadFile(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("http request: %#v\n", *r)
 	mForm := r.MultipartForm
 
-	for k, _ := range mForm.File {
+	for k := range mForm.File {
 		// k is the key of file part
 		file, fileHeader, err := r.FormFile(k)
 		if err != nil {
