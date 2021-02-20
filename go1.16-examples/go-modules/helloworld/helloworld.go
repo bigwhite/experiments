@@ -1,6 +1,6 @@
 package main
 
-import "github.com/Sirupsen/logrus"
+import "github.com/sirupsen/logrus"
 
 func main() {
 	logrus.Println("Hello, World")
