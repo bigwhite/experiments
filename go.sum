@@ -1,3 +1,7 @@
+bitbucket.org/bigwhite/m2 v1.0.1 h1:ztlc+rbp1WIcFbNm8I0TqU/ITqSyNIH0HkY2LnzUTQQ=
+bitbucket.org/bigwhite/m2 v1.0.1/go.mod h1:5YUR6DYZ0c+awRd2c1X/RSKU/Jd/BVUvDgGmANj7/wQ=
+bitbucket.org/bigwhite/m2 v1.0.2 h1:9rRHzvnRQ0PE+Dmz8PiCz3/JCv+ijPTzK9ZrYYuB59U=
+bitbucket.org/bigwhite/m2 v1.0.2/go.mod h1:wEzPjWlOIY8ROOLW3Kb6/AfZDqXt3Y7x3+iXiBl+qSU=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/DataDog/datadog-go v2.2.0+incompatible/go.mod h1:LButxg5PwREeZtORoXG3tL4fMGNddJ+vMq1mwgfaqoQ=
