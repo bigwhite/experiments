@@ -1,0 +1,10 @@
+用法：(保证hey在$PATH中)
+
+./http_client_load.sh task_num count_per_hey conn_per_hey method url
+
+
+e.g.  bash http_client_load.sh 6 100000 10 GET http://10.10.195.181:8080 // for nethttp
+e.g.  bash http_client_load.sh 6 100000 10 GET http://10.10.195.181:8081 // for fasthttp
+
+
+
