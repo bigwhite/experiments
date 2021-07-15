@@ -1,4 +1,4 @@
-module github.com/bigwhite/demo1-plugins
+module github.com/bigwhite/demo2-plugins
 
 replace github.com/bigwhite/common => /Users/tonybai/go/src/github.com/bigwhite/experiments/go-plugin/common
 
