@@ -1,3 +1,3 @@
-module github.com/bigwhite/demo1
+module github.com/bigwhite/demo5
 
 go 1.16
