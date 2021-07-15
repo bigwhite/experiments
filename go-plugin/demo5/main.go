@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/bigwhite/demo1/pkg/pkg1"
+	"github.com/bigwhite/demo5/pkg/pkg1"
 )
 
 func main() {
