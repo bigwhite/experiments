@@ -1,6 +1,10 @@
 all: server client
 
-server:
+server: 
 	go build github.com/bigwhite/tcp-stream-proto/demo1/cmd/server
-client:
+client: 
 	go build github.com/bigwhite/tcp-stream-proto/demo1/cmd/client
+
+clean:
+	rm -fr ./server
+	rm -fr ./client

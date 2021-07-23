@@ -16,7 +16,8 @@ func handleConn(c net.Conn) {
 		// read from the connection
 		framePayLoad, err := frameCodec.Decode(c)
 		if err != nil {
-			panic(err)
+			fmt.Println("handleConn: error:", err)
+			return
 		}
 
 		p, err := packet.Decode(framePayLoad)
@@ -26,24 +27,27 @@ func handleConn(c net.Conn) {
 		switch p.(type) {
 		case *packet.Submit:
 			submit := p.(*packet.Submit)
+			fmt.Printf("recv submit: id = %s, payload=%s\n", submit.ID, string(submit.Payload))
 			submitAck := &packet.SubmitAck{
 				ID:     submit.ID,
 				Result: 0,
 			}
 			ackFramePayload, err = packet.Encode(submitAck)
 			if err != nil {
-				panic(err)
+				fmt.Println("handleConn: error:", err)
+				return
 			}
 		default:
 			//...
 		}
-		// write to the connection
+
+		// ack write to the connection
 		err = frameCodec.Encode(c, ackFramePayload)
 		if err != nil {
-			panic(err)
+			fmt.Println("handleConn: error:", err)
+			return
 		}
 	}
-
 }
 
 func main() {
