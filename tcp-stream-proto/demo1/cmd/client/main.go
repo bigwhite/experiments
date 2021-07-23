@@ -50,7 +50,6 @@ func main() {
 		}
 
 		// handle ack
-
 		// read from the connection
 		ackFramePayLoad, err := frameCodec.Decode(conn)
 		if err != nil {
@@ -63,7 +62,6 @@ func main() {
 		if !ok {
 			panic("not submitack")
 		}
-
 		fmt.Printf("the result of submit ack[%s] is %d\n", submitAck.ID, submitAck.Result)
 
 		time.Sleep(5 * time.Second)

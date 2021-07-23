@@ -8,43 +8,59 @@ import (
 	"github.com/bigwhite/tcp-stream-proto/demo1/pkg/packet"
 )
 
+func handlePacket(framePayload []byte) (ackFramePayload []byte, err error) {
+	var p packet.Packet
+	p, err = packet.Decode(framePayload)
+	if err != nil {
+		fmt.Println("handleConn: packet decode error:", err)
+		return
+	}
+
+	switch p.(type) {
+	case *packet.Submit:
+		submit := p.(*packet.Submit)
+		fmt.Printf("recv submit: id = %s, payload=%s\n", submit.ID, string(submit.Payload))
+		submitAck := &packet.SubmitAck{
+			ID:     submit.ID,
+			Result: 0,
+		}
+		ackFramePayload, err = packet.Encode(submitAck)
+		if err != nil {
+			fmt.Println("handleConn: packet encode error:", err)
+			return nil, err
+		}
+		return ackFramePayload, nil
+	default:
+		return nil, fmt.Errorf("unknown packet type")
+	}
+}
+
 func handleConn(c net.Conn) {
 	defer c.Close()
 	frameCodec := frame.NewMyFrameCodec()
 
 	for {
 		// read from the connection
-		framePayLoad, err := frameCodec.Decode(c)
+
+		// decode the frame to get the payload
+		// the payload is undecoded packet
+		framePayload, err := frameCodec.Decode(c)
 		if err != nil {
-			fmt.Println("handleConn: error:", err)
+			fmt.Println("handleConn: frame decode error:", err)
 			return
 		}
 
-		p, err := packet.Decode(framePayLoad)
-		var ackFramePayload []byte
-
-		// do something with p
-		switch p.(type) {
-		case *packet.Submit:
-			submit := p.(*packet.Submit)
-			fmt.Printf("recv submit: id = %s, payload=%s\n", submit.ID, string(submit.Payload))
-			submitAck := &packet.SubmitAck{
-				ID:     submit.ID,
-				Result: 0,
-			}
-			ackFramePayload, err = packet.Encode(submitAck)
-			if err != nil {
-				fmt.Println("handleConn: error:", err)
-				return
-			}
-		default:
-			//...
+		// do something with the packet
+		ackFramePayload, err := handlePacket(framePayload)
+		if err != nil {
+			fmt.Println("handleConn: handle packet error:", err)
+			return
 		}
 
-		// ack write to the connection
+		// write ack frame to the connection
 		err = frameCodec.Encode(c, ackFramePayload)
 		if err != nil {
-			fmt.Println("handleConn: error:", err)
+			fmt.Println("handleConn: frame encode error:", err)
 			return
 		}
 	}
