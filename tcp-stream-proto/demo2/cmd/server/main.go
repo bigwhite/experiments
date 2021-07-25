@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/bigwhite/tcp-stream-proto/demo2/pkg/frame"
-	"github.com/bigwhite/tcp-stream-proto/demo2/pkg/packet"
+	"github.com/bigwhite/tcp-stream-proto/demo1/pkg/frame"
+	"github.com/bigwhite/tcp-stream-proto/demo1/pkg/packet"
 )
 
 func handlePacket(framePayload []byte) (ackFramePayload []byte, err error) {
@@ -40,7 +40,6 @@ func handleConn(c net.Conn) {
 	defer c.Close()
 	frameCodec := frame.NewMyFrameCodec()
 	rbuf := bufio.NewReader(c)
-	//wbuf := bufio.NewWriter(c)
 
 	for {
 		// read from the connection
