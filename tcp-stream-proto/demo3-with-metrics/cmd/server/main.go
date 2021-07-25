@@ -3,22 +3,13 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
-	"time"
+	"net/http"
 
 	"github.com/bigwhite/tcp-stream-proto/demo3/pkg/frame"
+	"github.com/bigwhite/tcp-stream-proto/demo3/pkg/monitor"
 	"github.com/bigwhite/tcp-stream-proto/demo3/pkg/packet"
-	"github.com/rcrowley/go-metrics"
 )
-
-var m metrics.Timer
-
-func init() {
-	m = metrics.NewTimer()
-	metrics.GetOrRegister("timer.requests", m)
-	go metrics.Log(metrics.DefaultRegistry, time.Second, log.Default())
-}
 
 func handlePacket(framePayload []byte) (ackFramePayload []byte, err error) {
 	var p packet.Packet
@@ -31,7 +22,7 @@ func handlePacket(framePayload []byte) (ackFramePayload []byte, err error) {
 	switch p.(type) {
 	case *packet.Submit:
 		submit := p.(*packet.Submit)
-		//fmt.Printf("recv submit: id = %s, payload=%s\n", submit.ID, string(submit.Payload))
+		fmt.Printf("recv submit: id = %s, payload=%s\n", submit.ID, string(submit.Payload))
 		submitAck := &packet.SubmitAck{
 			ID:     submit.ID,
 			Result: 0,
@@ -54,7 +45,6 @@ func handleConn(c net.Conn) {
 
 	for {
 		// read from the connection
-		start := time.Now()
 
 		// decode the frame to get the payload
 		// the payload is undecoded packet
@@ -77,12 +67,16 @@ func handleConn(c net.Conn) {
 			fmt.Println("handleConn: frame encode error:", err)
 			return
 		}
-		end := time.Now()
-		m.Update(end.Sub(start))
+		monitor.SubmitInTotal.Add(1)
 	}
 }
 
 func main() {
+	// expvars http server
+	go func() {
+		http.ListenAndServe(":8090", nil)
+	}()
+
 	l, err := net.Listen("tcp", ":8888")
 	if err != nil {
 		fmt.Println("listen error:", err)

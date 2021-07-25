@@ -5,5 +5,4 @@ go 1.16
 require (
 	github.com/bytedance/gopkg v0.0.0-20210716082555-acbf5a2aa7e2 // indirect
 	github.com/lucasepe/codename v0.2.0 // indirect
-	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 )
