@@ -28,6 +28,25 @@ func startNewConn() {
 	frameCodec := frame.NewMyFrameCodec()
 	var counter int
 
+	go func() {
+		for {
+			// handle ack
+			// read from the connection
+			ackFramePayLoad, err := frameCodec.Decode(conn)
+			if err != nil {
+				panic(err)
+			}
+
+			p, err := packet.Decode(ackFramePayLoad)
+
+			_, ok := p.(*packet.SubmitAck)
+			if !ok {
+				panic("not submitack")
+			}
+			//fmt.Printf("the result of submit ack[%s] is %d\n", submitAck.ID, submitAck.Result)
+		}
+	}()
+
 	for {
 		// send submit
 		counter++
@@ -48,21 +67,6 @@ func startNewConn() {
 		if err != nil {
 			panic(err)
 		}
-
-		// handle ack
-		// read from the connection
-		ackFramePayLoad, err := frameCodec.Decode(conn)
-		if err != nil {
-			panic(err)
-		}
-
-		p, err := packet.Decode(ackFramePayLoad)
-
-		_, ok := p.(*packet.SubmitAck)
-		if !ok {
-			panic("not submitack")
-		}
-		//fmt.Printf("the result of submit ack[%s] is %d\n", submitAck.ID, submitAck.Result)
 
 	}
 }
