@@ -40,7 +40,6 @@ func handleConn(c net.Conn) {
 	defer c.Close()
 	frameCodec := frame.NewMyFrameCodec()
 	rbuf := bufio.NewReader(c)
-	//wbuf := bufio.NewWriter(c)
 
 	for {
 		// read from the connection

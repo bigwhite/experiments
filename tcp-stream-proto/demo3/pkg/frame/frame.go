@@ -22,7 +22,7 @@ framePayload
 type FramePayload []byte
 
 type StreamFrameCodec interface {
-	Encode(io.Writer, FramePayload) error   // data(framePayload) -> frame，并写入io.Writer
+	Encode(io.Writer, FramePayload) error   // data -> frame，并写入io.Writer
 	Decode(io.Reader) (FramePayload, error) // 从io.Reader中提取frame payload，并返回给上层
 }
 
@@ -32,11 +32,11 @@ func NewMyFrameCodec() StreamFrameCodec {
 	return &myFrameCodec{}
 }
 
-func (p *myFrameCodec) Encode(w io.Writer, payload FramePayload) error {
-	var f = payload
-	var length int32 = int32(len(payload)) + 4
+func (p *myFrameCodec) Encode(w io.Writer, framePayload FramePayload) error {
+	var f = framePayload
+	var totalLen int32 = int32(len(framePayload)) + 4
 
-	err := binary.Write(w, binary.BigEndian, &length)
+	err := binary.Write(w, binary.BigEndian, &totalLen)
 	if err != nil {
 		return err
 	}

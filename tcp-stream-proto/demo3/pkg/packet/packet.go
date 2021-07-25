@@ -39,18 +39,14 @@ type Packet interface {
 	Encode() ([]byte, error) //  struct -> []byte
 }
 
-type PktHdr struct {
-	CommandID uint8
-}
-
 type Submit struct {
 	ID      string
 	Payload []byte
 }
 
-func (s *Submit) Decode(packet []byte) error {
-	s.ID = string(packet[:8])
-	s.Payload = packet[8:]
+func (s *Submit) Decode(pktBody []byte) error {
+	s.ID = string(pktBody[:8])
+	s.Payload = pktBody[8:]
 	return nil
 }
 
@@ -63,9 +59,9 @@ type SubmitAck struct {
 	Result uint8
 }
 
-func (s *SubmitAck) Decode(packet []byte) error {
-	s.ID = string(packet[0:8])
-	s.Result = uint8(packet[8])
+func (s *SubmitAck) Decode(pktBody []byte) error {
+	s.ID = string(pktBody[0:8])
+	s.Result = uint8(pktBody[8])
 	return nil
 }
 
@@ -74,8 +70,9 @@ func (s *SubmitAck) Encode() ([]byte, error) {
 }
 
 func Decode(packet []byte) (Packet, error) {
-	commandID := packet[0]
 	defer mcache.Free(packet)
+	commandID := packet[0]
+	pktBody := packet[1:]
 
 	switch commandID {
 	case CommandConn:
@@ -84,14 +81,14 @@ func Decode(packet []byte) (Packet, error) {
 		return nil, nil
 	case CommandSubmit:
 		s := Submit{}
-		err := s.Decode(packet[1:])
+		err := s.Decode(pktBody)
 		if err != nil {
 			return nil, err
 		}
 		return &s, nil
 	case CommandSubmitAck:
 		s := SubmitAck{}
-		err := s.Decode(packet[1:])
+		err := s.Decode(pktBody)
 		if err != nil {
 			return nil, err
 		}
@@ -103,24 +100,24 @@ func Decode(packet []byte) (Packet, error) {
 
 func Encode(p Packet) ([]byte, error) {
 	var commandID uint8
-	var body []byte
+	var pktBody []byte
 	var err error
 
 	switch t := p.(type) {
 	case *Submit:
 		commandID = CommandSubmit
-		body, err = p.Encode()
+		pktBody, err = p.Encode()
 		if err != nil {
 			return nil, err
 		}
 	case *SubmitAck:
 		commandID = CommandSubmitAck
-		body, err = p.Encode()
+		pktBody, err = p.Encode()
 		if err != nil {
 			return nil, err
 		}
 	default:
 		return nil, fmt.Errorf("unknown type [%s]", t)
 	}
-	return bytes.Join([][]byte{[]byte{commandID}, body}, nil), nil
+	return bytes.Join([][]byte{[]byte{commandID}, pktBody}, nil), nil
 }
