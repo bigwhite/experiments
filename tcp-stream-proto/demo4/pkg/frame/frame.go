@@ -21,7 +21,8 @@ func (cc Frame) Encode(c gnet.Conn, buf []byte) ([]byte, error) {
 	buffer := bytes.NewBuffer(result)
 
 	// take out the param
-	item := c.Context().(Frame)
+	//item := c.Context().(Frame)
+	item := buf
 	fmt.Println("in frame encode, item length is", len(item))
 	fmt.Println("in frame encode, item is", item)
 
@@ -49,19 +50,25 @@ func (cc Frame) Encode(c gnet.Conn, buf []byte) ([]byte, error) {
 func (cc Frame) Decode(c gnet.Conn) ([]byte, error) {
 	fmt.Println("into frame decode") //只是用来预读取，检查frame完整性
 	// read length
-	var length uint32
-	if size, header := c.ReadN(4); size == 4 {
+	var frameLength uint32
+	if n, header := c.ReadN(4); n == 4 {
 		byteBuffer := bytes.NewBuffer(header)
-		_ = binary.Read(byteBuffer, binary.BigEndian, &length)
-		fmt.Println("in frame decode: frame length =", length)
+		_ = binary.Read(byteBuffer, binary.BigEndian, &frameLength)
+		fmt.Println("in frame decode: frame length =", frameLength)
 
-		if size1, body := c.ReadN(int(length)); size1 == int(length) {
-			fmt.Println("in frame decode: body length =", len(body))
-			c.ShiftN(4 + int(length)) // shift frame header length
-			return body, nil
+		if frameLength > 100 {
+			fmt.Printf("in frame decode: frame length[%d] is wrong\n", frameLength)
+			c.ResetBuffer()
+			return nil, errors.New("length value is wrong")
+		}
+
+		if n, wholeFrame := c.ReadN(int(frameLength)); n == int(frameLength) {
+			fmt.Println("in frame decode: payload length =", len(wholeFrame)-4)
+			c.ShiftN(int(frameLength)) // shift frame header length
+			return wholeFrame[4:], nil
 		} else {
-			return nil, errors.New("not enough body data")
+			return nil, errors.New("not enough payload data")
 		}
 	}
-	return nil, errors.New("not enough length data")
+	return nil, errors.New("not enough frame length data")
 }

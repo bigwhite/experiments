@@ -27,13 +27,13 @@ func (cs *customCodecServer) OnInitComplete(srv gnet.Server) (action gnet.Action
 	return
 }
 
-func (cs *customCodecServer) React(fram []byte, c gnet.Conn) (out []byte, action gnet.Action) {
-	fmt.Println("into react: length of framePayload is ", len(fram))
-	fmt.Println("into react: framePayload bytes", fram)
+func (cs *customCodecServer) React(framePayload []byte, c gnet.Conn) (out []byte, action gnet.Action) {
+	fmt.Println("into react: length of framePayload is ", len(framePayload))
+	fmt.Println("into react: framePayload bytes", framePayload)
 	// packet decode
 	var p packet.Packet
 	var ackFramePayload []byte
-	p, err := packet.Decode(fram[4:])
+	p, err := packet.Decode(framePayload)
 	if err != nil {
 		fmt.Println("react: packet decode error:", err)
 		action = gnet.Close // close the connection
@@ -56,7 +56,7 @@ func (cs *customCodecServer) React(fram []byte, c gnet.Conn) (out []byte, action
 		}
 		out = []byte(ackFramePayload)
 		// packet ack encode
-		c.SetContext(frame.Frame(ackFramePayload))
+		//c.SetContext(frame.Frame(ackFramePayload))
 		return
 	default:
 		return nil, gnet.Close // close the connection
