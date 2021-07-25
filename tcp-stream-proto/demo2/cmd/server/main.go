@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/bigwhite/tcp-stream-proto/demo1/pkg/frame"
-	"github.com/bigwhite/tcp-stream-proto/demo1/pkg/packet"
+	"github.com/bigwhite/tcp-stream-proto/demo2/pkg/frame"
+	"github.com/bigwhite/tcp-stream-proto/demo2/pkg/packet"
 )
 
 func handlePacket(framePayload []byte) (ackFramePayload []byte, err error) {
