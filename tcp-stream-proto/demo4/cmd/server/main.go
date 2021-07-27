@@ -55,24 +55,10 @@ func (cs *customCodecServer) React(framePayload []byte, c gnet.Conn) (out []byte
 			return
 		}
 		out = []byte(ackFramePayload)
-		// packet ack encode
-		//c.SetContext(frame.Frame(ackFramePayload))
 		return
 	default:
 		return nil, gnet.Close // close the connection
 	}
-
-	/*
-		if cs.async {
-			data := append([]byte{}, frame...)
-			_ = cs.workerPool.Submit(func() {
-				c.AsyncWrite(data)
-			})
-			return
-		}
-	*/
-	out = []byte(ackFramePayload)
-	return
 }
 
 func customCodecServe(addr string, multicore, async bool, codec gnet.ICodec) {
