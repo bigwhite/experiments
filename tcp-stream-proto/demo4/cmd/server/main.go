@@ -28,8 +28,6 @@ func (cs *customCodecServer) OnInitComplete(srv gnet.Server) (action gnet.Action
 }
 
 func (cs *customCodecServer) React(framePayload []byte, c gnet.Conn) (out []byte, action gnet.Action) {
-	fmt.Println("into react: length of framePayload is ", len(framePayload))
-	fmt.Println("into react: framePayload bytes", framePayload)
 	// packet decode
 	var p packet.Packet
 	var ackFramePayload []byte

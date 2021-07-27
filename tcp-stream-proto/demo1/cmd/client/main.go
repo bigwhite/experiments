@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/bigwhite/tcp-stream-proto/demo1/pkg/frame"
 	"github.com/bigwhite/tcp-stream-proto/demo1/pkg/packet"
@@ -84,6 +85,6 @@ func startClient() {
 			panic(err)
 		}
 
-		//	time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }

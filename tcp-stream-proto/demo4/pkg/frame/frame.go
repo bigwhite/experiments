@@ -49,13 +49,11 @@ func (cc Frame) Decode(c gnet.Conn) ([]byte, error) {
 		_ = binary.Read(byteBuffer, binary.BigEndian, &frameLength)
 
 		if frameLength > 100 {
-			fmt.Printf("in frame decode: frame length[%d] is wrong\n", frameLength)
 			c.ResetBuffer()
 			return nil, errors.New("length value is wrong")
 		}
 
 		if n, wholeFrame := c.ReadN(int(frameLength)); n == int(frameLength) {
-			fmt.Println("in frame decode: payload length =", len(wholeFrame)-4)
 			c.ShiftN(int(frameLength)) // shift frame length
 			return wholeFrame[4:], nil // return frame payload
 		} else {
