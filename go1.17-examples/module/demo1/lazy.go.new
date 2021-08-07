@@ -1,0 +1,6 @@
+package lazy
+
+import (
+	_ "example.com/a/x"
+	_ "example.com/a/y"
+)
