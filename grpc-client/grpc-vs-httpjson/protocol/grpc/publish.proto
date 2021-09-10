@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package proto;
+
+option optimize_for = SPEED;
+
+message Message {
+  string clientid = 1;
+  string topic = 2;
+  string payload = 3;
+}
+
+message Response {
+  int32 code = 1;
+  string msg = 2;
+}
+
+service PublishService{
+    rpc Publish(Message) returns (Response);
+}
