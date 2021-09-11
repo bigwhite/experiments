@@ -1,0 +1,4 @@
+# Use goreman to run `go get github.com/mattn/goreman`
+demo2-server1: ./demo2-server -port 50051
+demo2-server2: ./demo2-server -port 50052
+demo2-server3: ./demo2-server -port 50053
