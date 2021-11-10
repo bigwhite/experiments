@@ -1,0 +1,8 @@
+go 1.18
+
+directory (
+    ./.
+    /Users/tonybai/go/src/github.com/etcd-io/etcd
+)
+
+//replace go.etcd.io/etcd/server/v3 v3.5.1 => /Users/tonybai/go/src/github.com/etcd-io/etcd/server
