@@ -1,8 +1,9 @@
+// go:build !windows || !race
+
 package fasthttp
 
 import (
 	"bufio"
-	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -176,6 +177,8 @@ var defaultClient Client
 // Copying Client by value is prohibited. Create new instance instead.
 //
 // It is safe calling Client methods from concurrently running goroutines.
+//
+// The fields of a Client should not be changed while it is in use.
 type Client struct {
 	noCopy noCopy //nolint:unused,structcheck
 
@@ -294,9 +297,12 @@ type Client struct {
 	// By default will use isIdempotent function
 	RetryIf RetryIfFunc
 
-	mLock sync.Mutex
-	m     map[string]*HostClient
-	ms    map[string]*HostClient
+	// ConfigureClient configures the fasthttp.HostClient.
+	ConfigureClient func(hc *HostClient) error
+
+	mLock      sync.Mutex
+	m          map[string]*HostClient
+	ms         map[string]*HostClient
 	readerPool sync.Pool
 	writerPool sync.Pool
 }
@@ -460,11 +466,10 @@ func (c *Client) Do(req *Request, resp *Response) error {
 	host := uri.Host()
 
 	isTLS := false
-	scheme := uri.Scheme()
-	if bytes.Equal(scheme, strHTTPS) {
+	if uri.isHttps() {
 		isTLS = true
-	} else if !bytes.Equal(scheme, strHTTP) {
-		return fmt.Errorf("unsupported protocol %q. http and https are supported", scheme)
+	} else if !uri.isHttp() {
+		return fmt.Errorf("unsupported protocol %q. http and https are supported", uri.Scheme())
 	}
 
 	startCleaner := false
@@ -508,11 +513,22 @@ func (c *Client) Do(req *Request, resp *Response) error {
 			clientReaderPool:              &c.readerPool,
 			clientWriterPool:              &c.writerPool,
 		}
+
+		if c.ConfigureClient != nil {
+			if err := c.ConfigureClient(hc); err != nil {
+				return err
+			}
+		}
+
 		m[string(host)] = hc
 		if len(m) == 1 {
 			startCleaner = true
 		}
 	}
+
+	atomic.AddInt32(&hc.pendingClientRequests, 1)
+	defer atomic.AddInt32(&hc.pendingClientRequests, -1)
+
 	c.mLock.Unlock()
 
 	if startCleaner {
@@ -540,16 +556,21 @@ func (c *Client) CloseIdleConnections() {
 func (c *Client) mCleaner(m map[string]*HostClient) {
 	mustStop := false
 
+	sleep := c.MaxIdleConnDuration
+	if sleep < time.Second {
+		sleep = time.Second
+	} else if sleep > 10*time.Second {
+		sleep = 10 * time.Second
+	}
+
 	for {
 		c.mLock.Lock()
 		for k, v := range m {
 			v.connsLock.Lock()
-			shouldRemove := v.connsCount == 0
-			v.connsLock.Unlock()
-
-			if shouldRemove {
+			if v.connsCount == 0 && atomic.LoadInt32(&v.pendingClientRequests) == 0 {
 				delete(m, k)
 			}
+			v.connsLock.Unlock()
 		}
 		if len(m) == 0 {
 			mustStop = true
@@ -559,7 +580,7 @@ func (c *Client) mCleaner(m map[string]*HostClient) {
 		if mustStop {
 			break
 		}
-		time.Sleep(10 * time.Second)
+		time.Sleep(sleep)
 	}
 }
 
@@ -593,6 +614,9 @@ type DialFunc func(addr string) (net.Conn, error)
 //
 // Request argument passed to RetryIfFunc, if there are any request errors.
 type RetryIfFunc func(request *Request) bool
+
+// TransportFunc wraps every request/response.
+type TransportFunc func(*Request, *Response) error
 
 // HostClient balances http requests among hosts listed in Addr.
 //
@@ -745,6 +769,9 @@ type HostClient struct {
 	// By default will use isIdempotent function
 	RetryIf RetryIfFunc
 
+	// Transport defines a transport-like mechanism that wraps every request/response.
+	Transport TransportFunc
+
 	clientName  atomic.Value
 	lastUseTime uint32
 
@@ -767,6 +794,10 @@ type HostClient struct {
 	clientWriterPool *sync.Pool
 
 	pendingRequests int32
+
+	// pendingClientRequests counts the number of requests that a Client is currently running using this HostClient.
+	// It will be incremented ealier than pendingRequests and will be used by Client to see if the HostClient is still in use.
+	pendingClientRequests int32
 
 	connsCleanerRun bool
 }
@@ -935,7 +966,7 @@ var clientURLResponseChPool sync.Pool
 
 func clientPostURL(dst []byte, url string, postArgs *Args, c clientDoer) (statusCode int, body []byte, err error) {
 	req := AcquireRequest()
-	req.Header.SetMethodBytes(strPost)
+	req.Header.SetMethod(MethodPost)
 	req.Header.SetContentTypeBytes(strPostArgsContentType)
 	if postArgs != nil {
 		if _, err := postArgs.WriteTo(req.BodyWriter()); err != nil {
@@ -1346,7 +1377,7 @@ func (c *HostClient) doNonNilReqResp(req *Request, resp *Response) (bool, error)
 	req.secureErrorLogMessage = c.SecureErrorLogMessage
 	req.Header.secureErrorLogMessage = c.SecureErrorLogMessage
 
-	if c.IsTLS != bytes.Equal(req.uri.Scheme(), strHTTPS) {
+	if c.IsTLS != req.URI().isHttps() {
 		return false, ErrHostClientRedirectToDifferentScheme
 	}
 
@@ -1360,8 +1391,16 @@ func (c *HostClient) doNonNilReqResp(req *Request, resp *Response) (bool, error)
 	resp.Reset()
 	resp.SkipBody = customSkipBody
 
-	if c.DisablePathNormalizing {
-		req.URI().DisablePathNormalizing = true
+	req.URI().DisablePathNormalizing = c.DisablePathNormalizing
+
+	userAgentOld := req.Header.UserAgent()
+	if len(userAgentOld) == 0 {
+		req.Header.userAgent = append(req.Header.userAgent[:0], c.getClientName()...)
+	}
+
+	if c.Transport != nil {
+		err := c.Transport(req, resp)
+		return err == nil, err
 	}
 
 	cc, err := c.acquireConn(req.timeout, req.ConnectionClose())
@@ -1388,10 +1427,6 @@ func (c *HostClient) doNonNilReqResp(req *Request, resp *Response) (bool, error)
 		resetConnection = true
 	}
 
-	userAgentOld := req.Header.UserAgent()
-	if len(userAgentOld) == 0 {
-		req.Header.userAgent = append(req.Header.userAgent[:0], c.getClientName()...)
-	}
 	bw := c.acquireWriter(conn)
 	err = req.Write(bw)
 
