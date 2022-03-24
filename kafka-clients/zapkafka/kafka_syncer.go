@@ -13,6 +13,7 @@ type kafkaWriteSyncer struct {
 
 func NewKafkaAsyncProducer(addrs []string) (sarama.AsyncProducer, error) {
 	config := sarama.NewConfig()
+	config.Consumer.Return.Errors = true
 	return sarama.NewAsyncProducer(addrs, config)
 }
 
@@ -22,6 +23,17 @@ func NewKafkaSyncer(producer sarama.AsyncProducer, topic string, fallbackWs zapc
 		topic:          topic,
 		fallbackSyncer: zapcore.AddSync(fallbackWs),
 	}
+
+	go func() {
+		for e := range producer.Errors() {
+			val, err := e.Msg.Value.Encode()
+			if err != nil {
+				continue
+			}
+
+			fallbackWs.Write(val)
+		}
+	}()
 	return w
 }
 
