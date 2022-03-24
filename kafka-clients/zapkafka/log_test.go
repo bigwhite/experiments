@@ -7,63 +7,37 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Shopify/sarama"
 	"github.com/Shopify/sarama/mocks"
 	"go.uber.org/zap"
 )
 
-/*
-func TestWriteFailWithKafkaSyncer(t *testing.T) {
-	config := sarama.NewConfig()
-	config.Producer.Return.Successes = true
-	config.ChannelBufferSize = 0 // make sure the success channel is unbuffered to block the kafka syncer
-	p := mocks.NewAsyncProducer(t, config)
-
-	var buf = []byte{}
-	w := bytes.NewBuffer(buf)
-	logger := New(NewKafkaSyncer(p, "test", NewFileSyncer(w)), 0)
-
-	logger.Info("demo1", zap.String("status", "ok")) // write to the kafka syncer
-	p.ExpectInputAndSucceed()
-
-	// all below will be written to the fallback sycner
-	logger.Info("demo2", zap.String("status", "ok"))
-	logger.Info("demo3", zap.String("status", "ok"))
-	logger.Info("demo4", zap.String("status", "ok"))
-	logger.Info("demo5", zap.String("status", "ok"))
-
-	s := string(w.Bytes())
-	if !strings.Contains(s, "demo2") {
-		t.Errorf("want true, actual false")
-	}
-	if !strings.Contains(s, "demo3") {
-		t.Errorf("want true, actual false")
-	}
-	if !strings.Contains(s, "demo4") {
-		t.Errorf("want true, actual false")
-	}
-	if !strings.Contains(s, "demo5") {
-		t.Errorf("want true, actual false")
-	}
-}
-*/
-
 func TestWriteFailWithKafkaSyncer(t *testing.T) {
 	config := sarama.NewConfig()
 	p := mocks.NewAsyncProducer(t, config)
 
-	var buf = []byte{}
+	var buf = make([]byte, 0, 256)
 	w := bytes.NewBuffer(buf)
+	w.Write([]byte("hello"))
 	logger := New(NewKafkaSyncer(p, "test", NewFileSyncer(w)), 0)
-
-	// all below will be written to the fallback sycner
-	logger.Info("demo1", zap.String("status", "ok")) // write to the kafka syncer
 
 	p.ExpectInputAndFail(errors.New("produce error"))
+	p.ExpectInputAndFail(errors.New("produce error"))
+
+	// all below will be written to the fallback sycner
+	logger.Info("demo1", zap.String("status", "ok")) // write to the kafka syncer
+	logger.Info("demo2", zap.String("status", "ok")) // write to the kafka syncer
+
+	// make sure the goroutine which handles the error writes the log to the fallback syncer
+	time.Sleep(2 * time.Second)
 
 	s := string(w.Bytes())
 	if !strings.Contains(s, "demo1") {
+		t.Errorf("want true, actual false")
+	}
+	if !strings.Contains(s, "demo2") {
 		t.Errorf("want true, actual false")
 	}
 
@@ -80,7 +54,6 @@ func TestWriteOKWithKafkaSyncer(t *testing.T) {
 	w := bytes.NewBuffer(buf)
 
 	logger := New(NewKafkaSyncer(p, "test", NewFileSyncer(w)), 0)
-	logger.Info("demo1", zap.String("status", "ok"))
 
 	messageChecker := func(msg *sarama.ProducerMessage) error {
 		b, err := msg.Value.Encode()
@@ -126,6 +99,8 @@ func TestWriteOKWithKafkaSyncer(t *testing.T) {
 	}
 
 	p.ExpectInputWithMessageCheckerFunctionAndSucceed(mocks.MessageChecker(messageChecker))
+	logger.Info("demo1", zap.String("status", "ok"))
+
 	if err := p.Close(); err != nil {
 		t.Error(err)
 	}
