@@ -44,13 +44,16 @@ func (ws *kafkaWriteSyncer) Write(b []byte) (n int, err error) {
 		Topic: ws.topic,
 		Value: sarama.ByteEncoder(b1),
 	}
+	ws.producer.Input() <- msg
 
-	select {
-	case ws.producer.Input() <- msg:
-	default:
-		// if producer block on input channel, write log entry to default fallbackSyncer
-		return ws.fallbackSyncer.Write(b1)
-	}
+	/*
+		select {
+		case ws.producer.Input() <- msg:
+		default:
+			// if producer block on input channel, write log entry to default fallbackSyncer
+			return ws.fallbackSyncer.Write(b1)
+		}
+	*/
 
 	return len(b1), nil
 }

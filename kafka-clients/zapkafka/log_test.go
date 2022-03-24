@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
+/*
 func TestWriteFailWithKafkaSyncer(t *testing.T) {
 	config := sarama.NewConfig()
 	config.Producer.Return.Successes = true
@@ -44,6 +45,30 @@ func TestWriteFailWithKafkaSyncer(t *testing.T) {
 	}
 	if !strings.Contains(s, "demo5") {
 		t.Errorf("want true, actual false")
+	}
+}
+*/
+
+func TestWriteFailWithKafkaSyncer(t *testing.T) {
+	config := sarama.NewConfig()
+	p := mocks.NewAsyncProducer(t, config)
+
+	var buf = []byte{}
+	w := bytes.NewBuffer(buf)
+	logger := New(NewKafkaSyncer(p, "test", NewFileSyncer(w)), 0)
+
+	// all below will be written to the fallback sycner
+	logger.Info("demo1", zap.String("status", "ok")) // write to the kafka syncer
+
+	p.ExpectInputAndFail(errors.New("produce error"))
+
+	s := string(w.Bytes())
+	if !strings.Contains(s, "demo1") {
+		t.Errorf("want true, actual false")
+	}
+
+	if err := p.Close(); err != nil {
+		t.Error(err)
 	}
 }
 

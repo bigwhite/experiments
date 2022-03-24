@@ -18,6 +18,10 @@ func (l *Logger) Info(msg string, fields ...zap.Field) {
 	l.l.Info(msg, fields...)
 }
 
+func (l *Logger) Sync() {
+	l.l.Sync()
+}
+
 func New(writer io.Writer, level int8, opts ...zap.Option) *Logger {
 	if writer == nil {
 		panic("the writer is nil")
