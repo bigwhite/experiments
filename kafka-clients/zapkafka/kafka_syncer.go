@@ -13,7 +13,7 @@ type kafkaWriteSyncer struct {
 
 func NewKafkaAsyncProducer(addrs []string) (sarama.AsyncProducer, error) {
 	config := sarama.NewConfig()
-	config.Consumer.Return.Errors = true
+	config.Producer.Return.Errors = true
 	return sarama.NewAsyncProducer(addrs, config)
 }
 
