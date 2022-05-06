@@ -24,7 +24,7 @@ func main() {
 	p := parser.NewCSVParser(stream)
 
 	// Finally parse the expression
-	l := &CSVListener{}
+	l := &CSVMapListener{}
 	antlr.ParseTreeWalkerDefault.Walk(l, p.CsvFile())
 	fmt.Printf("%s\n", l.String())
 }

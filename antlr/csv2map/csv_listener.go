@@ -8,18 +8,18 @@ import (
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
-type CSVListener struct {
+type CSVMapListener struct {
 	*parser.BaseCSVListener
 	headers []string
 	cm      []map[string]string
 	fields  []string // a slice of fields in current row
 }
 
-func (cl *CSVListener) lastHeader(header string) bool {
+func (cl *CSVMapListener) lastHeader(header string) bool {
 	return header == cl.headers[len(cl.headers)-1]
 }
 
-func (cl *CSVListener) String() string {
+func (cl *CSVMapListener) String() string {
 	var s strings.Builder
 	s.WriteString("[")
 
@@ -42,24 +42,24 @@ func (cl *CSVListener) String() string {
 }
 
 /* for debug
-func (this *CSVListener) EnterEveryRule(ctx antlr.ParserRuleContext) {
+func (this *CSVMapListener) EnterEveryRule(ctx antlr.ParserRuleContext) {
 	fmt.Println(ctx.GetText())
 }
 */
 
-func (cl *CSVListener) ExitHdr(c *parser.HdrContext) {
+func (cl *CSVMapListener) ExitHdr(c *parser.HdrContext) {
 	cl.headers = cl.fields
 }
 
-func (cl *CSVListener) ExitField(c *parser.FieldContext) {
+func (cl *CSVMapListener) ExitField(c *parser.FieldContext) {
 	cl.fields = append(cl.fields, c.GetText())
 }
 
-func (cl *CSVListener) EnterRow(c *parser.RowContext) {
+func (cl *CSVMapListener) EnterRow(c *parser.RowContext) {
 	cl.fields = []string{} // create a new field slice
 }
 
-func (cl *CSVListener) ExitRow(c *parser.RowContext) {
+func (cl *CSVMapListener) ExitRow(c *parser.RowContext) {
 	// get the rule index of parent context
 	if i, ok := c.GetParent().(antlr.RuleContext); ok {
 		if i.GetRuleIndex() == parser.CSVParserRULE_hdr {
