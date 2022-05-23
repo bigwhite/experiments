@@ -10,6 +10,18 @@ import (
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 )
 
+func extractReversePolishExpr(listener antlr.ParseTreeListener, t antlr.Tree) (err error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = fmt.Errorf("semantic tree assembly error: %v", x)
+		}
+	}()
+
+	antlr.ParseTreeWalkerDefault.Walk(listener, t)
+
+	return nil
+}
+
 func main() {
 	println("input file:", os.Args[1])
 	input, err := antlr.NewFileStream(os.Args[1])
@@ -32,10 +44,12 @@ func main() {
 		return
 	}
 
-	//antlr.ParseTreeWalkerDefault.Walk(NewTraceListener(p, tree), tree)
-
 	l := NewReversePolishExprListener()
-	antlr.ParseTreeWalkerDefault.Walk(l, tree)
+	err = extractReversePolishExpr(l, tree)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		return
+	}
 
 	processor := &Processor{
 		name:  l.ruleID,
@@ -67,7 +81,8 @@ func main() {
 
 	out, err := processor.Exec(in)
 	if err != nil {
-		panic(err)
+		fmt.Printf("processor execute error: %v", err)
+		return
 	}
 	fmt.Printf("%v\n", out)
 

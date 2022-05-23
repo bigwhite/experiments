@@ -97,6 +97,10 @@ func (l *ReversePolishExprListener) ExitWindowsWithLowAndHighIndex(c *parser.Win
 	} else {
 		l.high, _ = strconv.Atoi(t[1])
 	}
+
+	if l.high < l.low {
+		panic(fmt.Sprintf("windowsRange: low(%d) > high(%d)", l.low, l.high))
+	}
 }
 
 func (l *ReversePolishExprListener) ExitConditionExpr(c *parser.ConditionExprContext) {
