@@ -18,9 +18,20 @@ func main() {
 	}
 
 	lexer := parser.NewTdatLexer(input)
+
 	stream := antlr.NewCommonTokenStream(lexer, 0)
 	p := parser.NewTdatParser(stream)
+
+	p.RemoveErrorListeners()
+	el := NewVerboseErrorListener()
+	p.AddErrorListener(el)
+
 	tree := p.Prog()
+
+	if el.HasError() {
+		return
+	}
+
 	//antlr.ParseTreeWalkerDefault.Walk(NewTraceListener(p, tree), tree)
 
 	l := NewReversePolishExprListener()
