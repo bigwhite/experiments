@@ -1,11 +1,12 @@
 package main
 
 import (
-	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"time"
+
+	tls "github.com/tjfoc/gmsm/gmtls"
+	x509 "github.com/tjfoc/gmsm/x509"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 	}
 	pool.AppendCertsFromPEM(caCrt)
 
-	cert, err := tls.LoadX509KeyPair("./certs/client-rsa-cert.pem", "./certs/client-rsa-key.pem")
+	cert, err := tls.LoadX509KeyPair("./certs/client-gm-cert.pem", "./certs/client-gm-key.pem")
 	if err != nil {
 		fmt.Println("load x509 keypair error:", err)
 		return
@@ -37,7 +38,7 @@ func main() {
 
 	fmt.Println("connect ok")
 	for i := 0; i < 100; i++ {
-		_, err := conn.Write([]byte("hello, tls"))
+		_, err := conn.Write([]byte("hello, gm"))
 		if err != nil {
 			fmt.Println("conn write error:", err)
 			return

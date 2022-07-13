@@ -39,7 +39,7 @@ func main() {
 
 	fmt.Println("connect ok")
 	for i := 0; i < 100; i++ {
-		_, err := conn.Write([]byte("hello, gm"))
+		_, err := conn.Write([]byte("hello, tlcp"))
 		if err != nil {
 			fmt.Println("conn write error:", err)
 			return
