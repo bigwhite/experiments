@@ -13,3 +13,5 @@ C = CN
 
 [ext]
 subjectAltName = DNS:client1.com
+extendedKeyUsage = clientAuth
+keyUsage = critical,digitalSignature,keyEncipherment

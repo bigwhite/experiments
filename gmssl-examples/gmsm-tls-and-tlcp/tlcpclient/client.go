@@ -2,20 +2,34 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	tls "github.com/tjfoc/gmsm/gmtls"
+	x509 "github.com/tjfoc/gmsm/x509"
 )
 
 func main() {
-	cert, err := tls.LoadX509KeyPair("./certs/gm-client-enc-cert.pem", "./certs/gm-client-enc-key.pem")
+	pool := x509.NewCertPool()
+	caCertPath := "./certs/ca-gm-cert.pem"
+	caCrt, err := ioutil.ReadFile(caCertPath)
+	if err != nil {
+		fmt.Println("read ca err:", err)
+		return
+	}
+	pool.AppendCertsFromPEM(caCrt)
+
+	cert, err := tls.LoadX509KeyPair("./certs/client-gm-auth-cert.pem", "./certs/client-gm-auth-key.pem")
 	if err != nil {
 		fmt.Println("load x509 keypair error:", err)
 		return
 	}
 
 	conn, err := tls.Dial("tcp", "example.com:18000", &tls.Config{
-		Certificates: []tls.Certificate{cert},
+		Certificates:       []tls.Certificate{cert},
+		RootCAs:            pool,
+		GMSupport:          tls.NewGMSupport(),
+		InsecureSkipVerify: false,
 	})
 	if err != nil {
 		fmt.Println("failed to connect: " + err.Error())
@@ -37,7 +51,7 @@ func main() {
 			fmt.Println("conn read error:", err)
 			return
 		}
-		fmt.Println(string(b))
+		fmt.Println("reply:", string(b))
 		time.Sleep(time.Second)
 	}
 }

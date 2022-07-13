@@ -19,13 +19,20 @@ const (
 
 func main() {
 	pool := x509.NewCertPool()
-	caCertPath := "./certs/ca-rsa-cert.pem"
-	caCrt, err := ioutil.ReadFile(caCertPath)
+	rsaCACertPath := "./certs/ca-rsa-cert.pem"
+	rsaCACrt, err := ioutil.ReadFile(rsaCACertPath)
 	if err != nil {
-		fmt.Println("read ca err:", err)
+		fmt.Println("read rsa ca err:", err)
 		return
 	}
-	pool.AppendCertsFromPEM(caCrt)
+	gmCACertPath := "./certs/ca-gm-cert.pem"
+	gmCACrt, err := ioutil.ReadFile(gmCACertPath)
+	if err != nil {
+		fmt.Println("read gm ca err:", err)
+		return
+	}
+	pool.AppendCertsFromPEM(rsaCACrt)
+	pool.AppendCertsFromPEM(gmCACrt)
 
 	rsaKeypair, err := tls.LoadX509KeyPair(rsaCertPath, rsaKeyPath)
 	if err != nil {
