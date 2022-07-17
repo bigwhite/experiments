@@ -13,6 +13,8 @@ import (
 	"github.com/cilium/ebpf/rlimit"
 )
 
+// $BPF_CLANG, $BPF_CFLAGS and $BPF_HEADERS are set by the Makefile.
+//go:generate bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS -target bpfel,bpfeb bpf helloworld.bpf.c -- -I $BPF_HEADERS
 func main() {
 	stopper := make(chan os.Signal, 1)
 	signal.Notify(stopper, os.Interrupt, syscall.SIGTERM)
