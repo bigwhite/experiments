@@ -1,0 +1,10 @@
+apiVersion: my.domain/v1
+kind: WebServer
+metadata:
+  name: webserver-sample
+spec:
+  # TODO(user): Add fields here
+  #image: nginx:1.23.0
+  image: nginx:1.23.1
+  replicas: 3
+  #replicas: 4

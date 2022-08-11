@@ -1,0 +1,15 @@
+domain: my.domain
+layout:
+- go.kubebuilder.io/v3
+projectName: webserver-operator
+repo: github.com/bigwhite/webserver-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: my.domain
+  kind: WebServer
+  path: github.com/bigwhite/webserver-operator/api/v1
+  version: v1
+version: "3"
