@@ -106,7 +106,7 @@ func run(config string) error {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("[%s]]: receive a request from: %s\n", c.Server.Addr, r.RemoteAddr)
+		fmt.Printf("[%s]: receive a request from: %s\n", c.Server.Addr, r.RemoteAddr)
 		w.Write([]byte("Welcome"))
 	})
 	fmt.Printf("listen on %s\n", c.Server.Addr)
