@@ -11,7 +11,6 @@ import (
 
 var (
 	installCommand = flag.NewFlagSet("install", flag.ExitOnError)
-	startCommand   = flag.NewFlagSet("start", flag.ExitOnError)
 	runCommand     = flag.NewFlagSet("run", flag.ExitOnError)
 	user           string
 	workingdir     string

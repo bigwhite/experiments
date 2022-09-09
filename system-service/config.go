@@ -22,7 +22,8 @@ func getServiceConfig(subCmd string) (*service.Config, error) {
 		},
 	}
 
-	if subCmd == "install" {
+	switch subCmd {
+	case "install":
 		installCommand.Parse(os.Args[2:])
 		if user == "" {
 			fmt.Printf("error: user should be provided when install service\n")
@@ -38,6 +39,8 @@ func getServiceConfig(subCmd string) (*service.Config, error) {
 		// arguments
 		// ExecStart=/usr/local/bin/myapp "run" "-config" "/etc/myapp/config.ini"
 		c.Arguments = append(c.Arguments, "run", "-config", config)
+	case "run":
+		runCommand.Parse(os.Args[2:]) // parse config
 	}
 
 	return &c, nil
