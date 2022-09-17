@@ -1,0 +1,13 @@
+a.yml:
+  metadata:
+    name: foo
+
+b.yml:
+  log:
+    level: 1
+    compress: false
+    access_log: "access.log"
+    error_log: "error.log"
+    max_age: 3
+    maxbackups: 7
+    maxsize: 100

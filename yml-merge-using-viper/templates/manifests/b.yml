@@ -1,0 +1,9 @@
+log:
+  type: file
+  level: 0
+  compress: true
+  access_log: "access.log"
+  error_log: "error.log"
+  max_age: 3
+  maxbackups: 7
+  maxsize: 100
