@@ -1,6 +1,6 @@
 module github.com/bigwhite/experiments
 
-go 1.15
+go 1.20
 
 require (
 	bitbucket.org/bigwhite/m2 v1.0.2 // indirect
