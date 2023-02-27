@@ -1,0 +1,6 @@
+10.10.30.30/ard/incubators/privatemodule1.git v0.0.0-20230227061032-c4a6ea813d1a h1:09Kc4ELxUgzmmOmjYQkmfDMyG1iTnmUfHmJaFi2MgL0=
+10.10.30.30/ard/incubators/privatemodule1.git v0.0.0-20230227061032-c4a6ea813d1a/go.mod h1:0Aaj7LxPmJ0DzArgzPFGLLhs94rfxY+XHhaWqgAEmj8=
+github.com/bigwhite/privatemodule2 v0.0.0-20230227061454-a2de3aaa7b27 h1:ZJSLNsJyS2q8s3TjGxgvDi0BIjC6AfmiLgfa+om9Mow=
+github.com/bigwhite/privatemodule2 v0.0.0-20230227061454-a2de3aaa7b27/go.mod h1:muqLObhFuYk34A8ml4ddlIQREb+LZ5wQSpQzZ+0/48U=
+github.com/bigwhite/privatemodule3 v0.0.0-20230227061700-3762215e798f h1:plaoz3vdbZxkLGne/TdSpy2qBSzMkfmRsSIr+rTVJkA=
+github.com/bigwhite/privatemodule3 v0.0.0-20230227061700-3762215e798f/go.mod h1:enVYiChKPiXSKxQJrD3mQaSc/IFyolMlIiYCe8HF0cw=
