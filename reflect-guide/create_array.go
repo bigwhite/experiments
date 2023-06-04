@@ -19,5 +19,5 @@ func main() {
 		return
 	}
 
-	fmt.Println(arr1)
+	fmt.Println(arr1) // [1 2 3]
 }
