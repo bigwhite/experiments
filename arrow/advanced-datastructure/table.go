@@ -101,19 +101,25 @@ func main() {
 	}()
 	defer col3.Release()
 
-	tbl := array.NewTable(schema, []arrow.Column{*col1, *col2, *col3}, -1)
+	var tbl arrow.Table
+	tbl = array.NewTable(schema, []arrow.Column{*col1, *col2, *col3}, -1)
 	defer tbl.Release()
 
 	dumpTable(tbl)
 }
 
 func dumpTable(tbl arrow.Table) {
+	s := tbl.Schema()
+	fmt.Println(s)
+	fmt.Println("------")
+
 	fmt.Println("the count of table columns=", tbl.NumCols())
 	fmt.Println("the count of table rows=", tbl.NumRows())
+	fmt.Println("------")
 
 	for i := 0; i < int(tbl.NumCols()); i++ {
-		fmt.Println("arrays in column", i+1, ":")
 		col := tbl.Column(i)
+		fmt.Printf("arrays in column(%s):\n", col.Name())
 		chunk := col.Data()
 		for _, arr := range chunk.Chunks() {
 			fmt.Println(arr)
