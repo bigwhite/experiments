@@ -1,0 +1,6 @@
+go 1.20
+
+use (
+	.
+	/Users/tonybai/go/src/github.com/bigwhite/arrow-extend-compute1/go
+)
