@@ -18,6 +18,7 @@ func main() {
 
 	slog.Info("before resetting log level:")
 
+	slog.Debug("greeting", "name", "tony")
 	slog.Info("greeting", "name", "tony")
 	slog.Error("oops", "err", net.ErrClosed, "status", 500)
 	slog.LogAttrs(context.Background(), slog.LevelError, "oops",
