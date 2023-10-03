@@ -1,0 +1,13 @@
+[single]
+listeners.lis = {address = "localhost:8080"}
+
+[serviceweaver]
+binary = "./httpserver"
+rollout = "5m" # Perform five minutes slow rollout.
+
+[multi]
+listeners.lis = {address = "localhost:8080"}
+
+[gke]
+regions = ["us-west1"]
+listeners.lis = {public_hostname = "hello.com"}
