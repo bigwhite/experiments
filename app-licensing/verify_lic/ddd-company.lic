@@ -1,0 +1,17 @@
+{
+  "license": {
+    "id": "01234567890",
+    "vendor": "XYZ Company",
+    "issuedTo": "DDD Company",
+    "issuedDate": "2023-10-01T00:00:00Z",
+    "expirationDate": "2024-09-30T23:59:59Z",
+    "product": "My App",
+    "version": "1.0",
+    "licenseType": "Enterprise",
+    "maxConnections": 1000
+  },
+  "signature": {
+    "algorithm": "SHA256withRSA",
+    "value": "Cm73yXxA7g0JOWel9xIZtyYOqAcFUnrOectrnI3jX9iQC9NVt61CuZogFdm72uPO5o+h4NhFEy0Lymgt29XFWEEVqrUnZuNRZee5W3UXsPC5vkhVt414Co5rsXuFFV/2UDFt36sF7rp30H53H/M7TCUF0spEfx+ybilS4xC5AjCPC4/1G7swQ2zCVvBfvQXhZkz953DdgMD3sBsqU2i0mMPbMHGGH6J6wXoHjCC6VQ0e3azVTVhiA40kxo5/uI0+ENOo559NIiPaZiAkgZgiuRFybJFk5Ib705BuaNHw6HfRk5DnxmWF/852cv32hT7it0is77p0wGODACkNkPL7YQ=="
+  }
+}
