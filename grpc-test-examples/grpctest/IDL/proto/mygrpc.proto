@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package mygrpc;
+
+service MyService {
+  // Unary RPC
+  rpc UnaryRPC(RequestMessage) returns (ResponseMessage) {}
+
+  // Server-Streaming RPC
+  rpc ServerStreamingRPC(RequestMessage) returns (stream ResponseMessage) {}
+
+  // Client-Streaming RPC
+  rpc ClientStreamingRPC(stream RequestMessage) returns (ResponseMessage) {}
+
+  // Bidirectional-Streaming RPC
+  rpc BidirectionalStreamingRPC(stream RequestMessage) returns (stream ResponseMessage) {}
+}
+
+message RequestMessage {
+  string message = 1;
+}
+
+message ResponseMessage {
+  string message = 1;
+}
