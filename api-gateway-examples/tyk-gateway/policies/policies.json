@@ -1,0 +1,19 @@
+{
+	"5e189590801287e42a6cf5ce": {
+		"rate": 1000,
+		"per": 1,
+		"quota_max": 100,
+		"quota_renewal_rate": 60,
+		"access_rights": {
+			"protected-v1": {
+				"api_name": "protected-v1",
+				"api_id": "protected-v1",
+				"versions": [
+					"Default"
+				]
+			}
+		},
+		"org_id": "1",
+		"hmac_enabled": false
+	}
+}
