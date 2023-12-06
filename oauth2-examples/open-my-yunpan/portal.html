@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>云盘授权页面</title>
+	</head>
+	<body>
+
+		<h3>云盘授权页面</h3>
+
+		<p>
+			应用{{.AppName}}正在请求获取以下权限:
+			<ul>
+				{{range .Scopes}}
+				<li>{{.}}</li>
+				{{end}}
+			</ul>
+		</p>
+
+		<form id="authorization-form" method="post" action="/oauth/authorize">
+			<div>
+				用户名:
+				<input name="username" id="username" />
+				密码:
+				<input name="password" id="password" type="password" />
+				<input type="hidden" name="response_type" value="code" />
+				<input type="hidden" name="client_id" value="{{.AppName}}" />
+				<input type="hidden" name="scope" value="{{.ScopeTxt}}" />
+				<input type="hidden" name="state" value="{{.State}}" />
+				<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}" />
+				<button type="submit">授权</button>
+			</div>
+		</form>
+
+	</body>
+</html>

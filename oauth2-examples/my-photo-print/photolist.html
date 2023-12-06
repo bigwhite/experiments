@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>照片列表页面</title>
+    </head>
+    <body>
+
+        <h3>照片列表</h3>
+
+        <p>
+            用户{{.Username}}的照片列表如下:
+            <ul>
+                {{range .PhotoList}}
+                <li>{{.}}</li>
+                {{end}}
+            </ul>
+        </p>
+	</body>
+</html>
