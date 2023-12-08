@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>照片冲印服务</title>
+</head>
+<body>
+
+  <h3>欢迎使用照片冲印服务!</h3>
+
+  <div>
+    用户名: <input name="username"/>
+    密码: <input name="password" type="password"/> 
+    <button>登录</button>
+  </div>
+
+  <button id="auth-btn">使用云盘账号登录</button>
+
+  <script>
+    var authBtn = document.getElementById('auth-btn');
+    authBtn.addEventListener('click', function() {
+      var clientId = 'my-photo-print'; 
+      var scope = 'openid,read_photos';
+	  var state = '{{.State}}';
+      var url = 'http://open.my-yunpan.com:8081/oauth/portal?client_id=' + clientId + '&scope=' + scope+'&state=' + state + '&redirect_uri=http%3A%2F%2Fmy-photo-print.com%3A8080%2Foauth%2Fcb' 
+      window.location.href = url;
+    })
+  </script>
+</body>
+</html>
