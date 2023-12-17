@@ -1,0 +1,43 @@
+# Copyright VMware, Inc.
+# SPDX-License-Identifier: APACHE-2.0
+# config doc:  https://github.com/bitnami/containers/blob/main/bitnami/kafka/README.md
+
+version: "2"
+
+services:
+  kafka:
+    image: docker.io/bitnami/kafka:3.6
+    network_mode: "host"
+    #ports:
+      #- "9092:9092"
+    environment:
+      # KRaft settings
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@localhost:9094
+      # Listeners
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,SECURED://:9093,CONTROLLER://:9094
+      - KAFKA_CFG_ADVERTISED_LISTENERS=SECURED://:9093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,SECURED:SSL,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=SECURED
+      # SSL settings
+      - KAFKA_TLS_TYPE=PEM
+      - KAFKA_TLS_CLIENT_AUTH=none
+      - KAFKA_CFG_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM=
+      # borrow from testcontainer
+      - KAFKA_CFG_BROKER_ID=0
+      - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CFG_OFFSETS_TOPIC_NUM_PARTITIONS=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_CFG_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      - KAFKA_CFG_LOG_FLUSH_INTERVAL_MESSAGES=9223372036854775807
+    volumes:
+      # server.cert, server.key and ca.crt
+      - "kafka_data:/bitnami"
+      - "./kafka.keystore.pem:/opt/bitnami/kafka/config/certs/kafka.keystore.pem:ro"
+      - "./kafka.keystore.key:/opt/bitnami/kafka/config/certs/kafka.keystore.key:ro"
+      - "./kafka.truststore.pem:/opt/bitnami/kafka/config/certs/kafka.truststore.pem:ro"
+volumes:
+  kafka_data:
+    driver: local
