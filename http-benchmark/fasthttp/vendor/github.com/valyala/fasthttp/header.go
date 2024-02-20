@@ -32,16 +32,19 @@ type ResponseHeader struct {
 	noDefaultContentType bool
 	noDefaultDate        bool
 
-	statusCode         int
-	contentLength      int
-	contentLengthBytes []byte
-	secureErrorLogMessage     bool
+	statusCode            int
+	statusMessage         []byte
+	protocol              []byte
+	contentLength         int
+	contentLengthBytes    []byte
+	secureErrorLogMessage bool
 
 	contentType []byte
 	server      []byte
 
-	h     []argsKV
-	bufKV argsKV
+	h       []argsKV
+	trailer []argsKV
+	bufKV   argsKV
 
 	cookies []argsKV
 }
@@ -56,17 +59,18 @@ type ResponseHeader struct {
 type RequestHeader struct {
 	noCopy noCopy //nolint:unused,structcheck
 
-	disableNormalizing bool
-	noHTTP11           bool
-	connectionClose    bool
+	disableNormalizing   bool
+	noHTTP11             bool
+	connectionClose      bool
+	noDefaultContentType bool
 
 	// These two fields have been moved close to other bool fields
 	// for reducing RequestHeader object size.
 	cookiesCollected bool
 
-	contentLength      int
-	contentLengthBytes []byte
-	secureErrorLogMessage     bool
+	contentLength         int
+	contentLengthBytes    []byte
+	secureErrorLogMessage bool
 
 	method      []byte
 	requestURI  []byte
@@ -75,8 +79,9 @@ type RequestHeader struct {
 	contentType []byte
 	userAgent   []byte
 
-	h     []argsKV
-	bufKV argsKV
+	h       []argsKV
+	trailer []argsKV
+	bufKV   argsKV
 
 	cookies []argsKV
 
@@ -134,6 +139,29 @@ func (h *ResponseHeader) StatusCode() int {
 // SetStatusCode sets response status code.
 func (h *ResponseHeader) SetStatusCode(statusCode int) {
 	h.statusCode = statusCode
+}
+
+// StatusMessage returns response status message.
+func (h *ResponseHeader) StatusMessage() []byte {
+	return h.statusMessage
+}
+
+// SetStatusMessage sets response status message bytes.
+func (h *ResponseHeader) SetStatusMessage(statusMessage []byte) {
+	h.statusMessage = append(h.statusMessage[:0], statusMessage...)
+}
+
+// Protocol returns response protocol bytes.
+func (h *ResponseHeader) Protocol() []byte {
+	if len(h.protocol) > 0 {
+		return h.protocol
+	}
+	return strHTTP11
+}
+
+// SetProtocol sets response protocol bytes.
+func (h *ResponseHeader) SetProtocol(protocol []byte) {
+	h.protocol = append(h.protocol[:0], protocol...)
 }
 
 // SetLastModified sets 'Last-Modified' header to the given value.
@@ -271,7 +299,11 @@ func (h *RequestHeader) SetContentLength(contentLength int) {
 func (h *ResponseHeader) isCompressibleContentType() bool {
 	contentType := h.ContentType()
 	return bytes.HasPrefix(contentType, strTextSlash) ||
-		bytes.HasPrefix(contentType, strApplicationSlash)
+		bytes.HasPrefix(contentType, strApplicationSlash) ||
+		bytes.HasPrefix(contentType, strImageSVG) ||
+		bytes.HasPrefix(contentType, strImageIcon) ||
+		bytes.HasPrefix(contentType, strFontSlash) ||
+		bytes.HasPrefix(contentType, strMultipartSlash)
 }
 
 // ContentType returns Content-Type header value.
@@ -351,6 +383,117 @@ func (h *RequestHeader) SetMultipartFormBoundaryBytes(boundary []byte) {
 	h.bufKV.value = b
 
 	h.SetContentTypeBytes(h.bufKV.value)
+}
+
+// SetTrailer sets header Trailer value for chunked response
+// to indicate which headers will be sent after the body.
+//
+// Use Set to set the trailer header later.
+//
+// Trailers are only supported with chunked transfer.
+// Trailers allow the sender to include additional headers at the end of chunked messages.
+//
+// The following trailers are forbidden:
+// 1. necessary for message framing (e.g., Transfer-Encoding and Content-Length),
+// 2. routing (e.g., Host),
+// 3. request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231]),
+// 4. authentication (e.g., see [RFC7235] and [RFC6265]),
+// 5. response control data (e.g., see Section 7.1 of [RFC7231]),
+// 6. determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+//
+// Return ErrBadTrailer if contain any forbidden trailers.
+func (h *ResponseHeader) SetTrailer(trailer string) error {
+	return h.SetTrailerBytes(s2b(trailer))
+}
+
+// SetTrailerBytes sets Trailer header value for chunked response
+// to indicate which headers will be sent after the body.
+//
+// Use Set to set the trailer header later.
+//
+// Trailers are only supported with chunked transfer.
+// Trailers allow the sender to include additional headers at the end of chunked messages.
+//
+// The following trailers are forbidden:
+// 1. necessary for message framing (e.g., Transfer-Encoding and Content-Length),
+// 2. routing (e.g., Host),
+// 3. request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231]),
+// 4. authentication (e.g., see [RFC7235] and [RFC6265]),
+// 5. response control data (e.g., see Section 7.1 of [RFC7231]),
+// 6. determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+//
+// Return ErrBadTrailer if contain any forbidden trailers.
+func (h *ResponseHeader) SetTrailerBytes(trailer []byte) error {
+	h.trailer = h.trailer[:0]
+	return h.AddTrailerBytes(trailer)
+}
+
+// AddTrailer add Trailer header value for chunked response
+// to indicate which headers will be sent after the body.
+//
+// Use Set to set the trailer header later.
+//
+// Trailers are only supported with chunked transfer.
+// Trailers allow the sender to include additional headers at the end of chunked messages.
+//
+// The following trailers are forbidden:
+// 1. necessary for message framing (e.g., Transfer-Encoding and Content-Length),
+// 2. routing (e.g., Host),
+// 3. request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231]),
+// 4. authentication (e.g., see [RFC7235] and [RFC6265]),
+// 5. response control data (e.g., see Section 7.1 of [RFC7231]),
+// 6. determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+//
+// Return ErrBadTrailer if contain any forbidden trailers.
+func (h *ResponseHeader) AddTrailer(trailer string) error {
+	return h.AddTrailerBytes(s2b(trailer))
+}
+
+var ErrBadTrailer = errors.New("contain forbidden trailer")
+
+// AddTrailerBytes add Trailer header value for chunked response
+// to indicate which headers will be sent after the body.
+//
+// Use Set to set the trailer header later.
+//
+// Trailers are only supported with chunked transfer.
+// Trailers allow the sender to include additional headers at the end of chunked messages.
+//
+// The following trailers are forbidden:
+// 1. necessary for message framing (e.g., Transfer-Encoding and Content-Length),
+// 2. routing (e.g., Host),
+// 3. request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231]),
+// 4. authentication (e.g., see [RFC7235] and [RFC6265]),
+// 5. response control data (e.g., see Section 7.1 of [RFC7231]),
+// 6. determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+//
+// Return ErrBadTrailer if contain any forbidden trailers.
+func (h *ResponseHeader) AddTrailerBytes(trailer []byte) error {
+	var err error
+	for i := -1; i+1 < len(trailer); {
+		trailer = trailer[i+1:]
+		i = bytes.IndexByte(trailer, ',')
+		if i < 0 {
+			i = len(trailer)
+		}
+		key := trailer[:i]
+		for len(key) > 0 && key[0] == ' ' {
+			key = key[1:]
+		}
+		for len(key) > 0 && key[len(key)-1] == ' ' {
+			key = key[:len(key)-1]
+		}
+		// Forbidden by RFC 7230, section 4.1.2
+		if isBadTrailer(key) {
+			err = ErrBadTrailer
+			continue
+		}
+		h.bufKV.key = append(h.bufKV.key[:0], key...)
+		normalizeHeaderKey(h.bufKV.key, h.disableNormalizing)
+		h.trailer = appendArgBytes(h.trailer, h.bufKV.key, nil, argsNoValue)
+	}
+
+	return err
 }
 
 // MultipartFormBoundary returns boundary part
@@ -443,7 +586,7 @@ func (h *RequestHeader) SetRefererBytes(referer []byte) {
 // Method returns HTTP request method.
 func (h *RequestHeader) Method() []byte {
 	if len(h.method) == 0 {
-		return strGet
+		return []byte(MethodGet)
 	}
 	return h.method
 }
@@ -501,49 +644,158 @@ func (h *RequestHeader) SetRequestURIBytes(requestURI []byte) {
 	h.requestURI = append(h.requestURI[:0], requestURI...)
 }
 
+// SetTrailer sets Trailer header value for chunked request
+// to indicate which headers will be sent after the body.
+//
+// Use Set to set the trailer header later.
+//
+// Trailers are only supported with chunked transfer.
+// Trailers allow the sender to include additional headers at the end of chunked messages.
+//
+// The following trailers are forbidden:
+// 1. necessary for message framing (e.g., Transfer-Encoding and Content-Length),
+// 2. routing (e.g., Host),
+// 3. request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231]),
+// 4. authentication (e.g., see [RFC7235] and [RFC6265]),
+// 5. response control data (e.g., see Section 7.1 of [RFC7231]),
+// 6. determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+//
+// Return ErrBadTrailer if contain any forbidden trailers.
+func (h *RequestHeader) SetTrailer(trailer string) error {
+	return h.SetTrailerBytes(s2b(trailer))
+}
+
+// SetTrailerBytes sets Trailer header value for chunked request
+// to indicate which headers will be sent after the body.
+//
+// Use Set to set the trailer header later.
+//
+// Trailers are only supported with chunked transfer.
+// Trailers allow the sender to include additional headers at the end of chunked messages.
+//
+// The following trailers are forbidden:
+// 1. necessary for message framing (e.g., Transfer-Encoding and Content-Length),
+// 2. routing (e.g., Host),
+// 3. request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231]),
+// 4. authentication (e.g., see [RFC7235] and [RFC6265]),
+// 5. response control data (e.g., see Section 7.1 of [RFC7231]),
+// 6. determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+//
+// Return ErrBadTrailer if contain any forbidden trailers.
+func (h *RequestHeader) SetTrailerBytes(trailer []byte) error {
+	h.trailer = h.trailer[:0]
+	return h.AddTrailerBytes(trailer)
+}
+
+// AddTrailer add Trailer header value for chunked request
+// to indicate which headers will be sent after the body.
+//
+// Use Set to set the trailer header later.
+//
+// Trailers are only supported with chunked transfer.
+// Trailers allow the sender to include additional headers at the end of chunked messages.
+//
+// The following trailers are forbidden:
+// 1. necessary for message framing (e.g., Transfer-Encoding and Content-Length),
+// 2. routing (e.g., Host),
+// 3. request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231]),
+// 4. authentication (e.g., see [RFC7235] and [RFC6265]),
+// 5. response control data (e.g., see Section 7.1 of [RFC7231]),
+// 6. determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+//
+// Return ErrBadTrailer if contain any forbidden trailers.
+func (h *RequestHeader) AddTrailer(trailer string) error {
+	return h.AddTrailerBytes(s2b(trailer))
+}
+
+// AddTrailerBytes add Trailer header value for chunked request
+// to indicate which headers will be sent after the body.
+//
+// Use Set to set the trailer header later.
+//
+// Trailers are only supported with chunked transfer.
+// Trailers allow the sender to include additional headers at the end of chunked messages.
+//
+// The following trailers are forbidden:
+// 1. necessary for message framing (e.g., Transfer-Encoding and Content-Length),
+// 2. routing (e.g., Host),
+// 3. request modifiers (e.g., controls and conditionals in Section 5 of [RFC7231]),
+// 4. authentication (e.g., see [RFC7235] and [RFC6265]),
+// 5. response control data (e.g., see Section 7.1 of [RFC7231]),
+// 6. determining how to process the payload (e.g., Content-Encoding, Content-Type, Content-Range, and Trailer)
+//
+// Return ErrBadTrailer if contain any forbidden trailers.
+func (h *RequestHeader) AddTrailerBytes(trailer []byte) error {
+	var err error
+	for i := -1; i+1 < len(trailer); {
+		trailer = trailer[i+1:]
+		i = bytes.IndexByte(trailer, ',')
+		if i < 0 {
+			i = len(trailer)
+		}
+		key := trailer[:i]
+		for len(key) > 0 && key[0] == ' ' {
+			key = key[1:]
+		}
+		for len(key) > 0 && key[len(key)-1] == ' ' {
+			key = key[:len(key)-1]
+		}
+		// Forbidden by RFC 7230, section 4.1.2
+		if isBadTrailer(key) {
+			err = ErrBadTrailer
+			continue
+		}
+		h.bufKV.key = append(h.bufKV.key[:0], key...)
+		normalizeHeaderKey(h.bufKV.key, h.disableNormalizing)
+		h.trailer = appendArgBytes(h.trailer, h.bufKV.key, nil, argsNoValue)
+	}
+
+	return err
+}
+
 // IsGet returns true if request method is GET.
 func (h *RequestHeader) IsGet() bool {
-	return bytes.Equal(h.Method(), strGet)
+	return string(h.Method()) == MethodGet
 }
 
 // IsPost returns true if request method is POST.
 func (h *RequestHeader) IsPost() bool {
-	return bytes.Equal(h.Method(), strPost)
+	return string(h.Method()) == MethodPost
 }
 
 // IsPut returns true if request method is PUT.
 func (h *RequestHeader) IsPut() bool {
-	return bytes.Equal(h.Method(), strPut)
+	return string(h.Method()) == MethodPut
 }
 
 // IsHead returns true if request method is HEAD.
 func (h *RequestHeader) IsHead() bool {
-	return bytes.Equal(h.Method(), strHead)
+	return string(h.Method()) == MethodHead
 }
 
 // IsDelete returns true if request method is DELETE.
 func (h *RequestHeader) IsDelete() bool {
-	return bytes.Equal(h.Method(), strDelete)
+	return string(h.Method()) == MethodDelete
 }
 
 // IsConnect returns true if request method is CONNECT.
 func (h *RequestHeader) IsConnect() bool {
-	return bytes.Equal(h.Method(), strConnect)
+	return string(h.Method()) == MethodConnect
 }
 
 // IsOptions returns true if request method is OPTIONS.
 func (h *RequestHeader) IsOptions() bool {
-	return bytes.Equal(h.Method(), strOptions)
+	return string(h.Method()) == MethodOptions
 }
 
 // IsTrace returns true if request method is TRACE.
 func (h *RequestHeader) IsTrace() bool {
-	return bytes.Equal(h.Method(), strTrace)
+	return string(h.Method()) == MethodTrace
 }
 
 // IsPatch returns true if request method is PATCH.
 func (h *RequestHeader) IsPatch() bool {
-	return bytes.Equal(h.Method(), strPatch)
+	return string(h.Method()) == MethodPatch
 }
 
 // IsHTTP11 returns true if the request is HTTP/1.1.
@@ -679,6 +931,8 @@ func (h *ResponseHeader) resetSkipNormalize() {
 	h.connectionClose = false
 
 	h.statusCode = 0
+	h.statusMessage = h.statusMessage[:0]
+	h.protocol = h.protocol[:0]
 	h.contentLength = 0
 	h.contentLengthBytes = h.contentLengthBytes[:0]
 
@@ -687,11 +941,18 @@ func (h *ResponseHeader) resetSkipNormalize() {
 
 	h.h = h.h[:0]
 	h.cookies = h.cookies[:0]
+	h.trailer = h.trailer[:0]
+}
+
+// SetNoDefaultContentType allows you to control if a default Content-Type header will be set (false) or not (true).
+func (h *RequestHeader) SetNoDefaultContentType(noDefaultContentType bool) {
+	h.noDefaultContentType = noDefaultContentType
 }
 
 // Reset clears request header.
 func (h *RequestHeader) Reset() {
 	h.disableNormalizing = false
+	h.SetNoDefaultContentType(false)
 	h.resetSkipNormalize()
 }
 
@@ -708,6 +969,7 @@ func (h *RequestHeader) resetSkipNormalize() {
 	h.host = h.host[:0]
 	h.contentType = h.contentType[:0]
 	h.userAgent = h.userAgent[:0]
+	h.trailer = h.trailer[:0]
 
 	h.h = h.h[:0]
 	h.cookies = h.cookies[:0]
@@ -727,12 +989,15 @@ func (h *ResponseHeader) CopyTo(dst *ResponseHeader) {
 	dst.noDefaultDate = h.noDefaultDate
 
 	dst.statusCode = h.statusCode
+	dst.statusMessage = append(dst.statusMessage, h.statusMessage...)
+	dst.protocol = append(dst.protocol, h.protocol...)
 	dst.contentLength = h.contentLength
-	dst.contentLengthBytes = append(dst.contentLengthBytes[:0], h.contentLengthBytes...)
-	dst.contentType = append(dst.contentType[:0], h.contentType...)
-	dst.server = append(dst.server[:0], h.server...)
+	dst.contentLengthBytes = append(dst.contentLengthBytes, h.contentLengthBytes...)
+	dst.contentType = append(dst.contentType, h.contentType...)
+	dst.server = append(dst.server, h.server...)
 	dst.h = copyArgs(dst.h, h.h)
 	dst.cookies = copyArgs(dst.cookies, h.cookies)
+	dst.trailer = copyArgs(dst.trailer, h.trailer)
 }
 
 // CopyTo copies all the headers to dst.
@@ -744,17 +1009,18 @@ func (h *RequestHeader) CopyTo(dst *RequestHeader) {
 	dst.connectionClose = h.connectionClose
 
 	dst.contentLength = h.contentLength
-	dst.contentLengthBytes = append(dst.contentLengthBytes[:0], h.contentLengthBytes...)
-	dst.method = append(dst.method[:0], h.method...)
-	dst.proto = append(dst.proto[:0], h.proto...)
-	dst.requestURI = append(dst.requestURI[:0], h.requestURI...)
-	dst.host = append(dst.host[:0], h.host...)
-	dst.contentType = append(dst.contentType[:0], h.contentType...)
-	dst.userAgent = append(dst.userAgent[:0], h.userAgent...)
+	dst.contentLengthBytes = append(dst.contentLengthBytes, h.contentLengthBytes...)
+	dst.method = append(dst.method, h.method...)
+	dst.proto = append(dst.proto, h.proto...)
+	dst.requestURI = append(dst.requestURI, h.requestURI...)
+	dst.host = append(dst.host, h.host...)
+	dst.contentType = append(dst.contentType, h.contentType...)
+	dst.userAgent = append(dst.userAgent, h.userAgent...)
+	dst.trailer = append(dst.trailer, h.trailer...)
 	dst.h = copyArgs(dst.h, h.h)
 	dst.cookies = copyArgs(dst.cookies, h.cookies)
 	dst.cookiesCollected = h.cookiesCollected
-	dst.rawHeaders = append(dst.rawHeaders[:0], h.rawHeaders...)
+	dst.rawHeaders = append(dst.rawHeaders, h.rawHeaders...)
 }
 
 // VisitAll calls f for each header.
@@ -778,10 +1044,27 @@ func (h *ResponseHeader) VisitAll(f func(key, value []byte)) {
 			f(strSetCookie, v)
 		})
 	}
+	if len(h.trailer) > 0 {
+		f(strTrailer, appendArgsKeyBytes(nil, h.trailer, strCommaSpace))
+	}
 	visitArgs(h.h, f)
 	if h.ConnectionClose() {
 		f(strConnection, strClose)
 	}
+}
+
+// VisitAllTrailer calls f for each response Trailer.
+//
+// f must not retain references to value after returning.
+func (h *ResponseHeader) VisitAllTrailer(f func(value []byte)) {
+	visitArgsKey(h.trailer, f)
+}
+
+// VisitAllTrailer calls f for each request Trailer.
+//
+// f must not retain references to value after returning.
+func (h *RequestHeader) VisitAllTrailer(f func(value []byte)) {
+	visitArgsKey(h.trailer, f)
 }
 
 // VisitAllCookie calls f for each response cookie.
@@ -824,6 +1107,9 @@ func (h *RequestHeader) VisitAll(f func(key, value []byte)) {
 	userAgent := h.UserAgent()
 	if len(userAgent) > 0 {
 		f(strUserAgent, userAgent)
+	}
+	if len(h.trailer) > 0 {
+		f(strTrailer, appendArgsKeyBytes(nil, h.trailer, strCommaSpace))
 	}
 
 	h.collectCookies()
@@ -881,6 +1167,8 @@ func (h *ResponseHeader) del(key []byte) {
 		h.contentLengthBytes = h.contentLengthBytes[:0]
 	case HeaderConnection:
 		h.connectionClose = false
+	case HeaderTrailer:
+		h.trailer = h.trailer[:0]
 	}
 	h.h = delAllArgsBytes(h.h, key)
 }
@@ -913,44 +1201,189 @@ func (h *RequestHeader) del(key []byte) {
 		h.contentLengthBytes = h.contentLengthBytes[:0]
 	case HeaderConnection:
 		h.connectionClose = false
+	case HeaderTrailer:
+		h.trailer = h.trailer[:0]
 	}
 	h.h = delAllArgsBytes(h.h, key)
+}
+
+// setSpecialHeader handles special headers and return true when a header is processed.
+func (h *ResponseHeader) setSpecialHeader(key, value []byte) bool {
+	if len(key) == 0 {
+		return false
+	}
+
+	switch key[0] | 0x20 {
+	case 'c':
+		if caseInsensitiveCompare(strContentType, key) {
+			h.SetContentTypeBytes(value)
+			return true
+		} else if caseInsensitiveCompare(strContentLength, key) {
+			if contentLength, err := parseContentLength(value); err == nil {
+				h.contentLength = contentLength
+				h.contentLengthBytes = append(h.contentLengthBytes[:0], value...)
+			}
+			return true
+		} else if caseInsensitiveCompare(strConnection, key) {
+			if bytes.Equal(strClose, value) {
+				h.SetConnectionClose()
+			} else {
+				h.ResetConnectionClose()
+				h.h = setArgBytes(h.h, key, value, argsHasValue)
+			}
+			return true
+		}
+	case 's':
+		if caseInsensitiveCompare(strServer, key) {
+			h.SetServerBytes(value)
+			return true
+		} else if caseInsensitiveCompare(strSetCookie, key) {
+			var kv *argsKV
+			h.cookies, kv = allocArg(h.cookies)
+			kv.key = getCookieKey(kv.key, value)
+			kv.value = append(kv.value[:0], value...)
+			return true
+		}
+	case 't':
+		if caseInsensitiveCompare(strTransferEncoding, key) {
+			// Transfer-Encoding is managed automatically.
+			return true
+		} else if caseInsensitiveCompare(strTrailer, key) {
+			_ = h.SetTrailerBytes(value)
+			return true
+		}
+	case 'd':
+		if caseInsensitiveCompare(strDate, key) {
+			// Date is managed automatically.
+			return true
+		}
+	}
+
+	return false
+}
+
+// setSpecialHeader handles special headers and return true when a header is processed.
+func (h *RequestHeader) setSpecialHeader(key, value []byte) bool {
+	if len(key) == 0 {
+		return false
+	}
+
+	switch key[0] | 0x20 {
+	case 'c':
+		if caseInsensitiveCompare(strContentType, key) {
+			h.SetContentTypeBytes(value)
+			return true
+		} else if caseInsensitiveCompare(strContentLength, key) {
+			if contentLength, err := parseContentLength(value); err == nil {
+				h.contentLength = contentLength
+				h.contentLengthBytes = append(h.contentLengthBytes[:0], value...)
+			}
+			return true
+		} else if caseInsensitiveCompare(strConnection, key) {
+			if bytes.Equal(strClose, value) {
+				h.SetConnectionClose()
+			} else {
+				h.ResetConnectionClose()
+				h.h = setArgBytes(h.h, key, value, argsHasValue)
+			}
+			return true
+		} else if caseInsensitiveCompare(strCookie, key) {
+			h.collectCookies()
+			h.cookies = parseRequestCookies(h.cookies, value)
+			return true
+		}
+	case 't':
+		if caseInsensitiveCompare(strTransferEncoding, key) {
+			// Transfer-Encoding is managed automatically.
+			return true
+		} else if caseInsensitiveCompare(strTrailer, key) {
+			_ = h.SetTrailerBytes(value)
+			return true
+		}
+	case 'h':
+		if caseInsensitiveCompare(strHost, key) {
+			h.SetHostBytes(value)
+			return true
+		}
+	case 'u':
+		if caseInsensitiveCompare(strUserAgent, key) {
+			h.SetUserAgentBytes(value)
+			return true
+		}
+	}
+
+	return false
 }
 
 // Add adds the given 'key: value' header.
 //
 // Multiple headers with the same key may be added with this function.
 // Use Set for setting a single header for the given key.
+//
+// the Content-Type, Content-Length, Connection, Server, Set-Cookie,
+// Transfer-Encoding and Date headers can only be set once and will
+// overwrite the previous value.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see AddTrailer for more details),
+// it will be sent after the chunked response body.
 func (h *ResponseHeader) Add(key, value string) {
-	k := getHeaderKeyBytes(&h.bufKV, key, h.disableNormalizing)
-	h.h = appendArg(h.h, b2s(k), value, argsHasValue)
+	h.AddBytesKV(s2b(key), s2b(value))
 }
 
 // AddBytesK adds the given 'key: value' header.
 //
 // Multiple headers with the same key may be added with this function.
 // Use SetBytesK for setting a single header for the given key.
+//
+// the Content-Type, Content-Length, Connection, Server, Set-Cookie,
+// Transfer-Encoding and Date headers can only be set once and will
+// overwrite the previous value.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see AddTrailer for more details),
+// it will be sent after the chunked response body.
 func (h *ResponseHeader) AddBytesK(key []byte, value string) {
-	h.Add(b2s(key), value)
+	h.AddBytesKV(key, s2b(value))
 }
 
 // AddBytesV adds the given 'key: value' header.
 //
 // Multiple headers with the same key may be added with this function.
 // Use SetBytesV for setting a single header for the given key.
+//
+// the Content-Type, Content-Length, Connection, Server, Set-Cookie,
+// Transfer-Encoding and Date headers can only be set once and will
+// overwrite the previous value.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see AddTrailer for more details),
+// it will be sent after the chunked response body.
 func (h *ResponseHeader) AddBytesV(key string, value []byte) {
-	h.Add(key, b2s(value))
+	h.AddBytesKV(s2b(key), value)
 }
 
 // AddBytesKV adds the given 'key: value' header.
 //
 // Multiple headers with the same key may be added with this function.
 // Use SetBytesKV for setting a single header for the given key.
+//
+// the Content-Type, Content-Length, Connection, Server, Set-Cookie,
+// Transfer-Encoding and Date headers can only be set once and will
+// overwrite the previous value.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see AddTrailer for more details),
+// it will be sent after the chunked response body.
 func (h *ResponseHeader) AddBytesKV(key, value []byte) {
-	h.Add(b2s(key), b2s(value))
+	if h.setSpecialHeader(key, value) {
+		return
+	}
+
+	k := getHeaderKeyBytes(&h.bufKV, b2s(key), h.disableNormalizing)
+	h.h = appendArgBytes(h.h, k, value, argsHasValue)
 }
 
 // Set sets the given 'key: value' header.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked response body.
 //
 // Use Add for setting multiple header values under the same key.
 func (h *ResponseHeader) Set(key, value string) {
@@ -960,6 +1393,9 @@ func (h *ResponseHeader) Set(key, value string) {
 
 // SetBytesK sets the given 'key: value' header.
 //
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked response body.
+//
 // Use AddBytesK for setting multiple header values under the same key.
 func (h *ResponseHeader) SetBytesK(key []byte, value string) {
 	h.bufKV.value = append(h.bufKV.value[:0], value...)
@@ -968,6 +1404,9 @@ func (h *ResponseHeader) SetBytesK(key []byte, value string) {
 
 // SetBytesV sets the given 'key: value' header.
 //
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked response body.
+//
 // Use AddBytesV for setting multiple header values under the same key.
 func (h *ResponseHeader) SetBytesV(key string, value []byte) {
 	k := getHeaderKeyBytes(&h.bufKV, key, h.disableNormalizing)
@@ -975,6 +1414,9 @@ func (h *ResponseHeader) SetBytesV(key string, value []byte) {
 }
 
 // SetBytesKV sets the given 'key: value' header.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked response body.
 //
 // Use AddBytesKV for setting multiple header values under the same key.
 func (h *ResponseHeader) SetBytesKV(key, value []byte) {
@@ -985,36 +1427,15 @@ func (h *ResponseHeader) SetBytesKV(key, value []byte) {
 
 // SetCanonical sets the given 'key: value' header assuming that
 // key is in canonical form.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked response body.
 func (h *ResponseHeader) SetCanonical(key, value []byte) {
-	switch string(key) {
-	case HeaderContentType:
-		h.SetContentTypeBytes(value)
-	case HeaderServer:
-		h.SetServerBytes(value)
-	case HeaderSetCookie:
-		var kv *argsKV
-		h.cookies, kv = allocArg(h.cookies)
-		kv.key = getCookieKey(kv.key, value)
-		kv.value = append(kv.value[:0], value...)
-	case HeaderContentLength:
-		if contentLength, err := parseContentLength(value); err == nil {
-			h.contentLength = contentLength
-			h.contentLengthBytes = append(h.contentLengthBytes[:0], value...)
-		}
-	case HeaderConnection:
-		if bytes.Equal(strClose, value) {
-			h.SetConnectionClose()
-		} else {
-			h.ResetConnectionClose()
-			h.h = setArgBytes(h.h, key, value, argsHasValue)
-		}
-	case HeaderTransferEncoding:
-		// Transfer-Encoding is managed automatically.
-	case HeaderDate:
-		// Date is managed automatically.
-	default:
-		h.h = setArgBytes(h.h, key, value, argsHasValue)
+	if h.setSpecialHeader(key, value) {
+		return
 	}
+
+	h.h = setArgBytes(h.h, key, value, argsHasValue)
 }
 
 // SetCookie sets the given response cookie.
@@ -1122,36 +1543,59 @@ func (h *RequestHeader) DelAllCookies() {
 //
 // Multiple headers with the same key may be added with this function.
 // Use Set for setting a single header for the given key.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see AddTrailer for more details),
+// it will be sent after the chunked request body.
 func (h *RequestHeader) Add(key, value string) {
-	k := getHeaderKeyBytes(&h.bufKV, key, h.disableNormalizing)
-	h.h = appendArg(h.h, b2s(k), value, argsHasValue)
+	h.AddBytesKV(s2b(key), s2b(value))
 }
 
 // AddBytesK adds the given 'key: value' header.
 //
 // Multiple headers with the same key may be added with this function.
 // Use SetBytesK for setting a single header for the given key.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see AddTrailer for more details),
+// it will be sent after the chunked request body.
 func (h *RequestHeader) AddBytesK(key []byte, value string) {
-	h.Add(b2s(key), value)
+	h.AddBytesKV(key, s2b(value))
 }
 
 // AddBytesV adds the given 'key: value' header.
 //
 // Multiple headers with the same key may be added with this function.
 // Use SetBytesV for setting a single header for the given key.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see AddTrailer for more details),
+// it will be sent after the chunked request body.
 func (h *RequestHeader) AddBytesV(key string, value []byte) {
-	h.Add(key, b2s(value))
+	h.AddBytesKV(s2b(key), value)
 }
 
 // AddBytesKV adds the given 'key: value' header.
 //
 // Multiple headers with the same key may be added with this function.
 // Use SetBytesKV for setting a single header for the given key.
+//
+// the Content-Type, Content-Length, Connection, Cookie,
+// Transfer-Encoding, Host and User-Agent headers can only be set once
+// and will overwrite the previous value.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see AddTrailer for more details),
+// it will be sent after the chunked request body.
 func (h *RequestHeader) AddBytesKV(key, value []byte) {
-	h.Add(b2s(key), b2s(value))
+	if h.setSpecialHeader(key, value) {
+		return
+	}
+
+	k := getHeaderKeyBytes(&h.bufKV, b2s(key), h.disableNormalizing)
+	h.h = appendArgBytes(h.h, k, value, argsHasValue)
 }
 
 // Set sets the given 'key: value' header.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked request body.
 //
 // Use Add for setting multiple header values under the same key.
 func (h *RequestHeader) Set(key, value string) {
@@ -1161,6 +1605,9 @@ func (h *RequestHeader) Set(key, value string) {
 
 // SetBytesK sets the given 'key: value' header.
 //
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked request body.
+//
 // Use AddBytesK for setting multiple header values under the same key.
 func (h *RequestHeader) SetBytesK(key []byte, value string) {
 	h.bufKV.value = append(h.bufKV.value[:0], value...)
@@ -1169,6 +1616,9 @@ func (h *RequestHeader) SetBytesK(key []byte, value string) {
 
 // SetBytesV sets the given 'key: value' header.
 //
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked request body.
+//
 // Use AddBytesV for setting multiple header values under the same key.
 func (h *RequestHeader) SetBytesV(key string, value []byte) {
 	k := getHeaderKeyBytes(&h.bufKV, key, h.disableNormalizing)
@@ -1176,6 +1626,9 @@ func (h *RequestHeader) SetBytesV(key string, value []byte) {
 }
 
 // SetBytesKV sets the given 'key: value' header.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked request body.
 //
 // Use AddBytesKV for setting multiple header values under the same key.
 func (h *RequestHeader) SetBytesKV(key, value []byte) {
@@ -1186,40 +1639,22 @@ func (h *RequestHeader) SetBytesKV(key, value []byte) {
 
 // SetCanonical sets the given 'key: value' header assuming that
 // key is in canonical form.
+//
+// If the header is set as a Trailer (forbidden trailers will not be set, see SetTrailer for more details),
+// it will be sent after the chunked request body.
 func (h *RequestHeader) SetCanonical(key, value []byte) {
-	switch string(key) {
-	case HeaderHost:
-		h.SetHostBytes(value)
-	case HeaderContentType:
-		h.SetContentTypeBytes(value)
-	case HeaderUserAgent:
-		h.SetUserAgentBytes(value)
-	case HeaderCookie:
-		h.collectCookies()
-		h.cookies = parseRequestCookies(h.cookies, value)
-	case HeaderContentLength:
-		if contentLength, err := parseContentLength(value); err == nil {
-			h.contentLength = contentLength
-			h.contentLengthBytes = append(h.contentLengthBytes[:0], value...)
-		}
-	case HeaderConnection:
-		if bytes.Equal(strClose, value) {
-			h.SetConnectionClose()
-		} else {
-			h.ResetConnectionClose()
-			h.h = setArgBytes(h.h, key, value, argsHasValue)
-		}
-	case HeaderTransferEncoding:
-		// Transfer-Encoding is managed automatically.
-	default:
-		h.h = setArgBytes(h.h, key, value, argsHasValue)
+	if h.setSpecialHeader(key, value) {
+		return
 	}
+
+	h.h = setArgBytes(h.h, key, value, argsHasValue)
 }
 
 // Peek returns header value for the given key.
 //
-// Returned value is valid until the next call to ResponseHeader.
-// Do not store references to returned value. Make copies instead.
+// The returned value is valid until the response is released,
+// either though ReleaseResponse or your request handler returning.
+// Do not store references to the returned value. Make copies instead.
 func (h *ResponseHeader) Peek(key string) []byte {
 	k := getHeaderKeyBytes(&h.bufKV, key, h.disableNormalizing)
 	return h.peek(k)
@@ -1227,7 +1662,8 @@ func (h *ResponseHeader) Peek(key string) []byte {
 
 // PeekBytes returns header value for the given key.
 //
-// Returned value is valid until the next call to ResponseHeader.
+// The returned value is valid until the response is released,
+// either though ReleaseResponse or your request handler returning.
 // Do not store references to returned value. Make copies instead.
 func (h *ResponseHeader) PeekBytes(key []byte) []byte {
 	h.bufKV.key = append(h.bufKV.key[:0], key...)
@@ -1237,7 +1673,8 @@ func (h *ResponseHeader) PeekBytes(key []byte) []byte {
 
 // Peek returns header value for the given key.
 //
-// Returned value is valid until the next call to RequestHeader.
+// The returned value is valid until the request is released,
+// either though ReleaseRequest or your request handler returning.
 // Do not store references to returned value. Make copies instead.
 func (h *RequestHeader) Peek(key string) []byte {
 	k := getHeaderKeyBytes(&h.bufKV, key, h.disableNormalizing)
@@ -1246,7 +1683,8 @@ func (h *RequestHeader) Peek(key string) []byte {
 
 // PeekBytes returns header value for the given key.
 //
-// Returned value is valid until the next call to RequestHeader.
+// The returned value is valid until the request is released,
+// either though ReleaseRequest or your request handler returning.
 // Do not store references to returned value. Make copies instead.
 func (h *RequestHeader) PeekBytes(key []byte) []byte {
 	h.bufKV.key = append(h.bufKV.key[:0], key...)
@@ -1269,6 +1707,8 @@ func (h *ResponseHeader) peek(key []byte) []byte {
 		return h.contentLengthBytes
 	case HeaderSetCookie:
 		return appendResponseCookieBytes(nil, h.cookies)
+	case HeaderTrailer:
+		return appendArgsKeyBytes(nil, h.trailer, strCommaSpace)
 	default:
 		return peekArgBytes(h.h, key)
 	}
@@ -1294,6 +1734,8 @@ func (h *RequestHeader) peek(key []byte) []byte {
 			return appendRequestCookieBytes(nil, h.cookies)
 		}
 		return peekArgBytes(h.h, key)
+	case HeaderTrailer:
+		return appendArgsKeyBytes(nil, h.trailer, strCommaSpace)
 	default:
 		return peekArgBytes(h.h, key)
 	}
@@ -1362,15 +1804,70 @@ func (h *ResponseHeader) tryRead(r *bufio.Reader, n int) error {
 				}
 			}
 			return &ErrSmallBuffer{
-				error: fmt.Errorf("error when reading response headers: %s", errSmallBuffer),
+				error: fmt.Errorf("error when reading response headers: %w", errSmallBuffer),
 			}
 		}
 
-		return fmt.Errorf("error when reading response headers: %s", err)
+		return fmt.Errorf("error when reading response headers: %w", err)
 	}
 	b = mustPeekBuffered(r)
 	headersLen, errParse := h.parse(b)
 	if errParse != nil {
+		return headerError("response", err, errParse, b, h.secureErrorLogMessage)
+	}
+	mustDiscard(r, headersLen)
+	return nil
+}
+
+// ReadTrailer reads response trailer header from r.
+//
+// io.EOF is returned if r is closed before reading the first byte.
+func (h *ResponseHeader) ReadTrailer(r *bufio.Reader) error {
+	n := 1
+	for {
+		err := h.tryReadTrailer(r, n)
+		if err == nil {
+			return nil
+		}
+		if err != errNeedMore {
+			return err
+		}
+		n = r.Buffered() + 1
+	}
+}
+
+func (h *ResponseHeader) tryReadTrailer(r *bufio.Reader, n int) error {
+	b, err := r.Peek(n)
+	if len(b) == 0 {
+		// Return ErrTimeout on any timeout.
+		if x, ok := err.(interface{ Timeout() bool }); ok && x.Timeout() {
+			return ErrTimeout
+		}
+
+		if n == 1 || err == io.EOF {
+			return io.EOF
+		}
+
+		// This is for go 1.6 bug. See https://github.com/golang/go/issues/14121 .
+		if err == bufio.ErrBufferFull {
+			if h.secureErrorLogMessage {
+				return &ErrSmallBuffer{
+					error: fmt.Errorf("error when reading response trailer"),
+				}
+			}
+			return &ErrSmallBuffer{
+				error: fmt.Errorf("error when reading response trailer: %w", errSmallBuffer),
+			}
+		}
+
+		return fmt.Errorf("error when reading response trailer: %w", err)
+	}
+	b = mustPeekBuffered(r)
+	headersLen, errParse := h.parseTrailer(b)
+	if errParse != nil {
+		if err == io.EOF {
+			return err
+		}
 		return headerError("response", err, errParse, b, h.secureErrorLogMessage)
 	}
 	mustDiscard(r, headersLen)
@@ -1401,27 +1898,89 @@ func headerError(typ string, err, errParse error, b []byte, secureErrorLogMessag
 
 func headerErrorMsg(typ string, err error, b []byte, secureErrorLogMessage bool) error {
 	if secureErrorLogMessage {
-		return fmt.Errorf("error when reading %s headers: %s. Buffer size=%d", typ, err, len(b))
+		return fmt.Errorf("error when reading %s headers: %w. Buffer size=%d", typ, err, len(b))
 	}
-	return fmt.Errorf("error when reading %s headers: %s. Buffer size=%d, contents: %s", typ, err, len(b), bufferSnippet(b))
+	return fmt.Errorf("error when reading %s headers: %w. Buffer size=%d, contents: %s", typ, err, len(b), bufferSnippet(b))
 }
 
 // Read reads request header from r.
 //
 // io.EOF is returned if r is closed before reading the first header byte.
 func (h *RequestHeader) Read(r *bufio.Reader) error {
+	return h.readLoop(r, true)
+}
+
+// readLoop reads request header from r optionally loops until it has enough data.
+//
+// io.EOF is returned if r is closed before reading the first header byte.
+func (h *RequestHeader) readLoop(r *bufio.Reader, waitForMore bool) error {
 	n := 1
 	for {
 		err := h.tryRead(r, n)
 		if err == nil {
 			return nil
 		}
-		if err != errNeedMore {
+		if !waitForMore || err != errNeedMore {
 			h.resetSkipNormalize()
 			return err
 		}
 		n = r.Buffered() + 1
 	}
+}
+
+// ReadTrailer reads request trailer header from r.
+//
+// io.EOF is returned if r is closed before reading the first byte.
+func (h *RequestHeader) ReadTrailer(r *bufio.Reader) error {
+	n := 1
+	for {
+		err := h.tryReadTrailer(r, n)
+		if err == nil {
+			return nil
+		}
+		if err != errNeedMore {
+			return err
+		}
+		n = r.Buffered() + 1
+	}
+}
+
+func (h *RequestHeader) tryReadTrailer(r *bufio.Reader, n int) error {
+	b, err := r.Peek(n)
+	if len(b) == 0 {
+		// Return ErrTimeout on any timeout.
+		if x, ok := err.(interface{ Timeout() bool }); ok && x.Timeout() {
+			return ErrTimeout
+		}
+
+		if n == 1 || err == io.EOF {
+			return io.EOF
+		}
+
+		// This is for go 1.6 bug. See https://github.com/golang/go/issues/14121 .
+		if err == bufio.ErrBufferFull {
+			if h.secureErrorLogMessage {
+				return &ErrSmallBuffer{
+					error: fmt.Errorf("error when reading request trailer"),
+				}
+			}
+			return &ErrSmallBuffer{
+				error: fmt.Errorf("error when reading request trailer: %w", errSmallBuffer),
+			}
+		}
+
+		return fmt.Errorf("error when reading request trailer: %w", err)
+	}
+	b = mustPeekBuffered(r)
+	headersLen, errParse := h.parseTrailer(b)
+	if errParse != nil {
+		if err == io.EOF {
+			return err
+		}
+		return headerError("request", err, errParse, b, h.secureErrorLogMessage)
+	}
+	mustDiscard(r, headersLen)
+	return nil
 }
 
 func (h *RequestHeader) tryRead(r *bufio.Reader, n int) error {
@@ -1439,7 +1998,7 @@ func (h *RequestHeader) tryRead(r *bufio.Reader, n int) error {
 		// This is for go 1.6 bug. See https://github.com/golang/go/issues/14121 .
 		if err == bufio.ErrBufferFull {
 			return &ErrSmallBuffer{
-				error: fmt.Errorf("error when reading request headers: %s", errSmallBuffer),
+				error: fmt.Errorf("error when reading request headers: %w (n=%d, r.Buffered()=%d)", errSmallBuffer, n, r.Buffered()),
 			}
 		}
 
@@ -1449,7 +2008,7 @@ func (h *RequestHeader) tryRead(r *bufio.Reader, n int) error {
 			return ErrNothingRead{err}
 		}
 
-		return fmt.Errorf("error when reading request headers: %s", err)
+		return fmt.Errorf("error when reading request headers: %w", err)
 	}
 	b = mustPeekBuffered(r)
 	headersLen, errParse := h.parse(b)
@@ -1520,9 +2079,36 @@ func (h *ResponseHeader) WriteTo(w io.Writer) (int64, error) {
 
 // Header returns response header representation.
 //
-// The returned value is valid until the next call to ResponseHeader methods.
+// Headers that set as Trailer will not represent. Use TrailerHeader for trailers.
+//
+// The returned value is valid until the request is released,
+// either though ReleaseRequest or your request handler returning.
+// Do not store references to returned value. Make copies instead.
 func (h *ResponseHeader) Header() []byte {
 	h.bufKV.value = h.AppendBytes(h.bufKV.value[:0])
+	return h.bufKV.value
+}
+
+// writeTrailer writes response trailer to w.
+func (h *ResponseHeader) writeTrailer(w *bufio.Writer) error {
+	_, err := w.Write(h.TrailerHeader())
+	return err
+}
+
+// TrailerHeader returns response trailer header representation.
+//
+// Trailers will only be received with chunked transfer.
+//
+// The returned value is valid until the request is released,
+// either though ReleaseRequest or your request handler returning.
+// Do not store references to returned value. Make copies instead.
+func (h *ResponseHeader) TrailerHeader() []byte {
+	h.bufKV.value = h.bufKV.value[:0]
+	for _, t := range h.trailer {
+		value := h.peek(t.key)
+		h.bufKV.value = appendHeaderLine(h.bufKV.value, t.key, value)
+	}
+	h.bufKV.value = append(h.bufKV.value, strCRLF...)
 	return h.bufKV.value
 }
 
@@ -1531,14 +2117,20 @@ func (h *ResponseHeader) String() string {
 	return string(h.Header())
 }
 
-// AppendBytes appends response header representation to dst and returns
+// appendStatusLine appends the response status line to dst and returns
 // the extended dst.
-func (h *ResponseHeader) AppendBytes(dst []byte) []byte {
+func (h *ResponseHeader) appendStatusLine(dst []byte) []byte {
 	statusCode := h.StatusCode()
 	if statusCode < 0 {
 		statusCode = StatusOK
 	}
-	dst = append(dst, statusLine(statusCode)...)
+	return formatStatusLine(dst, h.Protocol(), statusCode, h.StatusMessage())
+}
+
+// AppendBytes appends response header representation to dst and returns
+// the extended dst.
+func (h *ResponseHeader) AppendBytes(dst []byte) []byte {
+	dst = h.appendStatusLine(dst[:0])
 
 	server := h.Server()
 	if len(server) != 0 {
@@ -1566,9 +2158,22 @@ func (h *ResponseHeader) AppendBytes(dst []byte) []byte {
 
 	for i, n := 0, len(h.h); i < n; i++ {
 		kv := &h.h[i]
-		if h.noDefaultDate || !bytes.Equal(kv.key, strDate) {
+
+		// Exclude trailer from header
+		exclude := false
+		for _, t := range h.trailer {
+			if bytes.Equal(kv.key, t.key) {
+				exclude = true
+				break
+			}
+		}
+		if !exclude && (h.noDefaultDate || !bytes.Equal(kv.key, strDate)) {
 			dst = appendHeaderLine(dst, kv.key, kv.value)
 		}
+	}
+
+	if len(h.trailer) > 0 {
+		dst = appendHeaderLine(dst, strTrailer, appendArgsKeyBytes(nil, h.trailer, strCommaSpace))
 	}
 
 	n := len(h.cookies)
@@ -1602,9 +2207,36 @@ func (h *RequestHeader) WriteTo(w io.Writer) (int64, error) {
 
 // Header returns request header representation.
 //
-// The returned representation is valid until the next call to RequestHeader methods.
+// Headers that set as Trailer will not represent. Use TrailerHeader for trailers.
+//
+// The returned value is valid until the request is released,
+// either though ReleaseRequest or your request handler returning.
+// Do not store references to returned value. Make copies instead.
 func (h *RequestHeader) Header() []byte {
 	h.bufKV.value = h.AppendBytes(h.bufKV.value[:0])
+	return h.bufKV.value
+}
+
+// writeTrailer writes request trailer to w.
+func (h *RequestHeader) writeTrailer(w *bufio.Writer) error {
+	_, err := w.Write(h.TrailerHeader())
+	return err
+}
+
+// TrailerHeader returns request trailer header representation.
+//
+// Trailers will only be received with chunked transfer.
+//
+// The returned value is valid until the request is released,
+// either though ReleaseRequest or your request handler returning.
+// Do not store references to returned value. Make copies instead.
+func (h *RequestHeader) TrailerHeader() []byte {
+	h.bufKV.value = h.bufKV.value[:0]
+	for _, t := range h.trailer {
+		value := h.peek(t.key)
+		h.bufKV.value = appendHeaderLine(h.bufKV.value, t.key, value)
+	}
+	h.bufKV.value = append(h.bufKV.value, strCRLF...)
 	return h.bufKV.value
 }
 
@@ -1648,8 +2280,8 @@ func (h *RequestHeader) AppendBytes(dst []byte) []byte {
 	}
 
 	contentType := h.ContentType()
-	if len(contentType) == 0 && !h.ignoreBody() {
-		contentType = strPostArgsContentType
+	if !h.noDefaultContentType && len(contentType) == 0 && !h.ignoreBody() {
+		contentType = strDefaultContentType
 	}
 	if len(contentType) > 0 {
 		dst = appendHeaderLine(dst, strContentType, contentType)
@@ -1660,7 +2292,21 @@ func (h *RequestHeader) AppendBytes(dst []byte) []byte {
 
 	for i, n := 0, len(h.h); i < n; i++ {
 		kv := &h.h[i]
-		dst = appendHeaderLine(dst, kv.key, kv.value)
+		// Exclude trailer from header
+		exclude := false
+		for _, t := range h.trailer {
+			if bytes.Equal(kv.key, t.key) {
+				exclude = true
+				break
+			}
+		}
+		if !exclude {
+			dst = appendHeaderLine(dst, kv.key, kv.value)
+		}
+	}
+
+	if len(h.trailer) > 0 {
+		dst = appendHeaderLine(dst, strTrailer, appendArgsKeyBytes(nil, h.trailer, strCommaSpace))
 	}
 
 	// there is no need in h.collectCookies() here, since if cookies aren't collected yet,
@@ -1699,6 +2345,43 @@ func (h *ResponseHeader) parse(buf []byte) (int, error) {
 	return m + n, nil
 }
 
+func (h *ResponseHeader) parseTrailer(buf []byte) (int, error) {
+	// Skip any 0 length chunk.
+	if buf[0] == '0' {
+		skip := len(strCRLF) + 1
+		if len(buf) < skip {
+			return 0, io.EOF
+		}
+		buf = buf[skip:]
+	}
+
+	var s headerScanner
+	s.b = buf
+	s.disableNormalizing = h.disableNormalizing
+	var err error
+	for s.next() {
+		if len(s.key) > 0 {
+			if bytes.IndexByte(s.key, ' ') != -1 || bytes.IndexByte(s.key, '\t') != -1 {
+				err = fmt.Errorf("invalid trailer key %q", s.key)
+				continue
+			}
+			// Forbidden by RFC 7230, section 4.1.2
+			if isBadTrailer(s.key) {
+				err = fmt.Errorf("forbidden trailer key %q", s.key)
+				continue
+			}
+		}
+		h.h = appendArgBytes(h.h, s.key, s.value, argsHasValue)
+	}
+	if s.err != nil {
+		return 0, s.err
+	}
+	if err != nil {
+		return 0, err
+	}
+	return s.hLen, nil
+}
+
 func (h *RequestHeader) ignoreBody() bool {
 	return h.IsGet() || h.IsHead()
 }
@@ -1719,6 +2402,87 @@ func (h *RequestHeader) parse(buf []byte) (int, error) {
 		return 0, err
 	}
 	return m + n, nil
+}
+
+func (h *RequestHeader) parseTrailer(buf []byte) (int, error) {
+	// Skip any 0 length chunk.
+	if buf[0] == '0' {
+		skip := len(strCRLF) + 1
+		if len(buf) < skip {
+			return 0, io.EOF
+		}
+		buf = buf[skip:]
+	}
+
+	var s headerScanner
+	s.b = buf
+	s.disableNormalizing = h.disableNormalizing
+	var err error
+	for s.next() {
+		if len(s.key) > 0 {
+			if bytes.IndexByte(s.key, ' ') != -1 || bytes.IndexByte(s.key, '\t') != -1 {
+				err = fmt.Errorf("invalid trailer key %q", s.key)
+				continue
+			}
+			// Forbidden by RFC 7230, section 4.1.2
+			if isBadTrailer(s.key) {
+				err = fmt.Errorf("forbidden trailer key %q", s.key)
+				continue
+			}
+			h.h = appendArgBytes(h.h, s.key, s.value, argsHasValue)
+		}
+	}
+	if s.err != nil {
+		return 0, s.err
+	}
+	if err != nil {
+		return 0, err
+	}
+	return s.hLen, nil
+}
+
+func isBadTrailer(key []byte) bool {
+	if len(key) == 0 {
+		return true
+	}
+
+	switch key[0] | 0x20 {
+	case 'a':
+		return caseInsensitiveCompare(key, strAuthorization)
+	case 'c':
+		if len(key) > len(HeaderContentType) && caseInsensitiveCompare(key[:8], strContentType[:8]) {
+			// skip compare prefix 'Content-'
+			return caseInsensitiveCompare(key[8:], strContentEncoding[8:]) ||
+				caseInsensitiveCompare(key[8:], strContentLength[8:]) ||
+				caseInsensitiveCompare(key[8:], strContentType[8:]) ||
+				caseInsensitiveCompare(key[8:], strContentRange[8:])
+		}
+		return caseInsensitiveCompare(key, strConnection)
+	case 'e':
+		return caseInsensitiveCompare(key, strExpect)
+	case 'h':
+		return caseInsensitiveCompare(key, strHost)
+	case 'k':
+		return caseInsensitiveCompare(key, strKeepAlive)
+	case 'm':
+		return caseInsensitiveCompare(key, strMaxForwards)
+	case 'p':
+		if len(key) > len(HeaderProxyConnection) && caseInsensitiveCompare(key[:6], strProxyConnection[:6]) {
+			// skip compare prefix 'Proxy-'
+			return caseInsensitiveCompare(key[6:], strProxyConnection[6:]) ||
+				caseInsensitiveCompare(key[6:], strProxyAuthenticate[6:]) ||
+				caseInsensitiveCompare(key[6:], strProxyAuthorization[6:])
+		}
+	case 'r':
+		return caseInsensitiveCompare(key, strRange)
+	case 't':
+		return caseInsensitiveCompare(key, strTE) ||
+			caseInsensitiveCompare(key, strTrailer) ||
+			caseInsensitiveCompare(key, strTransferEncoding)
+	case 'w':
+		return caseInsensitiveCompare(key, strWWWAuthenticate)
+	}
+	return false
 }
 
 func (h *ResponseHeader) parseFirstLine(buf []byte) (int, error) {
@@ -1746,15 +2510,18 @@ func (h *ResponseHeader) parseFirstLine(buf []byte) (int, error) {
 	h.statusCode, n, err = parseUintBuf(b)
 	if err != nil {
 		if h.secureErrorLogMessage {
-			return 0, fmt.Errorf("cannot parse response status code: %s", err)
+			return 0, fmt.Errorf("cannot parse response status code: %w", err)
 		}
-		return 0, fmt.Errorf("cannot parse response status code: %s. Response %q", err, buf)
+		return 0, fmt.Errorf("cannot parse response status code: %w. Response %q", err, buf)
 	}
 	if len(b) > n && b[n] != ' ' {
 		if h.secureErrorLogMessage {
 			return 0, fmt.Errorf("unexpected char at the end of status code")
 		}
 		return 0, fmt.Errorf("unexpected char at the end of status code. Response %q", buf)
+	}
+	if len(b) > n+1 {
+		h.SetStatusMessage(b[n+1:])
 	}
 
 	return len(buf) - len(bNext), nil
@@ -1802,37 +2569,6 @@ func (h *RequestHeader) parseFirstLine(buf []byte) (int, error) {
 	h.requestURI = append(h.requestURI[:0], b[:n]...)
 
 	return len(buf) - len(bNext), nil
-}
-
-func peekRawHeader(buf, key []byte) []byte {
-	n := bytes.Index(buf, key)
-	if n < 0 {
-		return nil
-	}
-	if n > 0 && buf[n-1] != nChar {
-		return nil
-	}
-	n += len(key)
-	if n >= len(buf) {
-		return nil
-	}
-	if buf[n] != ':' {
-		return nil
-	}
-	n++
-	if buf[n] != ' ' {
-		return nil
-	}
-	n++
-	buf = buf[n:]
-	n = bytes.IndexByte(buf, nChar)
-	if n < 0 {
-		return nil
-	}
-	if n > 0 && buf[n-1] == rChar {
-		n--
-	}
-	return buf[:n]
 }
 
 func readRawHeaders(dst, buf []byte) ([]byte, int, error) {
@@ -1918,6 +2654,10 @@ func (h *ResponseHeader) parseHeaders(buf []byte) (int, error) {
 					}
 					continue
 				}
+				if caseInsensitiveCompare(s.key, strTrailer) {
+					err = h.SetTrailerBytes(s.value)
+					continue
+				}
 			}
 			h.h = appendArgBytes(h.h, s.key, s.value, argsHasValue)
 		}
@@ -1940,7 +2680,7 @@ func (h *ResponseHeader) parseHeaders(buf []byte) (int, error) {
 		h.connectionClose = !hasHeaderValue(v, strKeepAlive)
 	}
 
-	return len(buf) - len(s.b), nil
+	return len(buf) - len(s.b), err
 }
 
 func (h *RequestHeader) parseHeaders(buf []byte) (int, error) {
@@ -2006,6 +2746,14 @@ func (h *RequestHeader) parseHeaders(buf []byte) (int, error) {
 					}
 					continue
 				}
+				if caseInsensitiveCompare(s.key, strTrailer) {
+					if nerr := h.SetTrailerBytes(s.value); nerr != nil {
+						if err == nil {
+							err = nerr
+						}
+					}
+					continue
+				}
 			}
 		}
 		h.h = appendArgBytes(h.h, s.key, s.value, argsHasValue)
@@ -2049,13 +2797,15 @@ func (h *RequestHeader) collectCookies() {
 	h.cookiesCollected = true
 }
 
+var errNonNumericChars = errors.New("non-numeric chars found")
+
 func parseContentLength(b []byte) (int, error) {
 	v, n, err := parseUintBuf(b)
 	if err != nil {
-		return -1, err
+		return -1, fmt.Errorf("cannot parse Content-Length: %w", err)
 	}
 	if n != len(b) {
-		return -1, fmt.Errorf("non-numeric chars at the end of Content-Length")
+		return -1, fmt.Errorf("cannot parse Content-Length: %w", errNonNumericChars)
 	}
 	return v, nil
 }
@@ -2387,6 +3137,17 @@ func AppendNormalizedHeaderKey(dst []byte, key string) []byte {
 //   * foo-bar-baz -> Foo-Bar-Baz
 func AppendNormalizedHeaderKeyBytes(dst, key []byte) []byte {
 	return AppendNormalizedHeaderKey(dst, b2s(key))
+}
+
+func appendArgsKeyBytes(dst []byte, args []argsKV, sep []byte) []byte {
+	for i, n := 0, len(args); i < n; i++ {
+		kv := &args[i]
+		dst = append(dst, kv.key...)
+		if i+1 < n {
+			dst = append(dst, sep...)
+		}
+	}
+	return dst
 }
 
 var (
