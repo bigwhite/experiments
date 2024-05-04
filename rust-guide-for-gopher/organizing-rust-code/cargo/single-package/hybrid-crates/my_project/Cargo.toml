@@ -1,0 +1,20 @@
+[package]
+name = "my_project"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "cmd1"
+path = "src/main1.rs"
+
+[[bin]]
+name = "cmd2"
+path = "src/main2.rs"
+
+[lib]
+name = "my_library"
+path = "src/lib.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

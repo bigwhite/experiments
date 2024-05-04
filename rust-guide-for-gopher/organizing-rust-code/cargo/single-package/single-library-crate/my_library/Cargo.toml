@@ -1,0 +1,12 @@
+[package]
+name = "my_library"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "my_library"
+path = "src/lib.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
