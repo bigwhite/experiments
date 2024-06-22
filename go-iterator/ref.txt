@@ -1,0 +1,5 @@
+Most iterators provide the ability to walk an entire sequence:
+when called, the iterator does any setup necessary to start the
+sequence, then calls yield on successive elements of the sequence,
+and then cleans up before returning. Calling the iterator again
+walks the sequence again.
