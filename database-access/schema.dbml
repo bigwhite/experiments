@@ -1,0 +1,53 @@
+Table department {
+  dept_id int [pk, increment]
+  name varchar(50) [not null]
+}
+
+Table instructor {
+  instr_id int [pk, increment]
+  name varchar(50) [not null]
+  dept_id int
+  
+  Indexes {
+    (dept_id) [name: 'fk_instructor_department']
+  }
+}
+
+Table course {
+  course_id int [pk, increment]
+  title varchar(100) [not null]
+  dept_id int
+  
+  Indexes {
+    (dept_id) [name: 'fk_course_department']
+  }
+}
+
+Table student {
+  student_id int [pk, increment]
+  name varchar(50) [not null]
+  dept_id int
+  
+  Indexes {
+    (dept_id) [name: 'fk_student_department']
+  }
+}
+
+Table enrollment {
+  student_id int
+  course_id int
+  semester varchar(6)
+  year int
+  
+  Indexes {
+    (student_id, course_id, semester, year) [pk]
+    (student_id) [name: 'fk_enrollment_student']
+    (course_id) [name: 'fk_enrollment_course']
+  }
+}
+
+Ref: instructor.dept_id > department.dept_id
+Ref: course.dept_id > department.dept_id
+Ref: student.dept_id > department.dept_id
+Ref: enrollment.student_id > student.student_id
+Ref: enrollment.course_id > course.course_id
