@@ -1,21 +1,6 @@
 DROP DATABASE IF EXISTS example_db;
 CREATE DATABASE example_db;
 
--- 删除 enrollment 表
-DROP TABLE enrollment;
-
--- 删除 student 表
-DROP TABLE student; 
-
--- 删除 course 表
-DROP TABLE course;
-
--- 删除 instructor 表
-DROP TABLE instructor;
-
--- 删除 department 表
-DROP TABLE department;
-
 CREATE TABLE department (
     dept_id INT AUTO_INCREMENT,
     name VARCHAR(50) NOT NULL,
