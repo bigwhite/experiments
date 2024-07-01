@@ -1,4 +1,4 @@
--- schema/schema.sql
+-- schema.sql
 
 CREATE TABLE department (
     id INT AUTO_INCREMENT PRIMARY KEY,
