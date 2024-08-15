@@ -1,0 +1,26 @@
+sequenceDiagram
+    participant AgentL
+    participant STUN Server
+    participant AgentR
+
+    AgentL->>STUN Server: 1. STUN Binding Request
+    STUN Server-->>AgentL: 2. STUN Binding Response
+    AgentR->>STUN Server: 3. STUN Binding Request
+    STUN Server-->>AgentR: 4. STUN Binding Response
+    
+    Note over AgentL,AgentR: ICE Candidate Gathering
+
+    AgentL->>AgentR: 5. Exchange Candidates
+    AgentR->>AgentL: 6. Exchange Candidates
+
+    Note over AgentL,AgentR: Candidate Prioritization
+
+    AgentL->>AgentR: 7. Connectivity Checks (STUN Binding Requests)
+    AgentR->>AgentL: 8. Connectivity Checks (STUN Binding Requests)
+
+    Note over AgentL,AgentR: ICE Connectivity Checks
+
+    AgentL->>AgentR: 9. Select Best Candidate Pair
+    AgentR->>AgentL: 10. Confirm Best Candidate Pair
+
+    Note over AgentL,AgentR: ICE Concluded

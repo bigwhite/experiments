@@ -1,0 +1,28 @@
+sequenceDiagram
+    participant Client1
+    participant SignalingServer
+    participant Client2
+    participant Client3
+
+    Client1->>SignalingServer: 创建房间
+    SignalingServer-->>Client1: 房间创建成功，返回房间ID
+    Client2->>SignalingServer: 加入房间（房间ID）
+    SignalingServer-->>Client1: 通知新客户端加入
+    SignalingServer-->>Client2: 加入成功，返回房间信息
+    Client3->>SignalingServer: 加入房间（房间ID）
+    SignalingServer-->>Client1: 通知新客户端加入
+    SignalingServer-->>Client2: 通知新客户端加入
+    SignalingServer-->>Client3: 加入成功，返回房间信息
+    Client1->>SignalingServer: 发送Offer（针对Client2）
+    SignalingServer-->>Client2: 转发Offer
+    Client2->>SignalingServer: 发送Answer
+    SignalingServer-->>Client1: 转发Answer
+    Client1->>SignalingServer: 发送ICE候选（针对Client2）
+    SignalingServer-->>Client2: 转发ICE候选
+    Client2->>SignalingServer: 发送ICE候选
+    SignalingServer-->>Client1: 转发ICE候选
+    Client2->>SignalingServer: 离开房间
+    SignalingServer-->>Client1: 通知客户端离开
+    SignalingServer-->>Client3: 通知客户端离开
+    Client1->>SignalingServer: 关闭房间
+    SignalingServer-->>Client3: 通知房间关闭

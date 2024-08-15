@@ -1,0 +1,18 @@
+sequenceDiagram
+    participant A as 客户端A
+    participant S as 信令服务器
+    participant B as 客户端B
+    A->>S: 加入房间
+    B->>S: 加入房间
+    A->>S: 发送Offer SDP
+    S->>B: 转发Offer SDP
+    B->>S: 发送Answer SDP
+    S->>A: 转发Answer SDP
+    A->>A: 收集ICE候选
+    B->>B: 收集ICE候选
+    A->>S: 发送ICE候选
+    S->>B: 转发ICE候选
+    B->>S: 发送ICE候选
+    S->>A: 转发ICE候选
+    A->>B: ICE连通性检查
+    A->>B: 建立P2P连接

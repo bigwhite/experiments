@@ -1,0 +1,23 @@
+sequenceDiagram
+    participant AgentL
+    participant AgentR
+
+    Note over AgentL,AgentR: Existing ICE Session
+
+    AgentL->>AgentR: 1. Initiate ICE Restart (new ufrag/password)
+    Note over AgentL,AgentR: Both agents start new candidate gathering
+
+    AgentL->>AgentR: 2. Exchange New Candidates
+    AgentR->>AgentL: 3. Exchange New Candidates
+
+    Note over AgentL,AgentR: New Connectivity Checks
+
+    AgentL->>AgentR: 4. STUN Binding Requests (new candidates)
+    AgentR->>AgentL: 5. STUN Binding Requests (new candidates)
+
+    Note over AgentL,AgentR: Select New Best Candidate Pair
+
+    AgentL->>AgentR: 6. Nominate Best Candidate Pair
+    AgentR->>AgentL: 7. Confirm Best Candidate Pair
+
+    Note over AgentL,AgentR: New ICE Session Established

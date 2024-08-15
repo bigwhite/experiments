@@ -1,0 +1,56 @@
+sequenceDiagram
+    participant A as 端点A
+    participant NAT_A as A的NAT
+    participant STUN as STUN服务器
+    participant NAT_B as B的NAT
+    participant B as 端点B
+
+    Note over A,B: ICE候选收集阶段
+    A->>A: 收集主机候选
+    A->>NAT_A: STUN绑定请求
+    NAT_A->>STUN: STUN绑定请求
+    STUN-->>NAT_A: STUN绑定响应
+    NAT_A-->>A: STUN绑定响应 (反射候选A')
+    B->>B: 收集主机候选
+    B->>NAT_B: STUN绑定请求
+    NAT_B->>STUN: STUN绑定请求
+    STUN-->>NAT_B: STUN绑定响应
+    NAT_B-->>B: STUN绑定响应 (反射候选B')
+
+    Note over A,B: 候选交换 (通过信令服务器，此处省略)
+    A->>B: 发送候选列表 (主机 + A')
+    B->>A: 发送候选列表 (主机 + B')
+
+    Note over A,B: 连接检查开始
+    A->>NAT_A: STUN绑定请求 (目标: B')
+    NAT_A->>NAT_B: STUN绑定请求 (源地址变为A')
+    NAT_B->>B: STUN绑定请求 (源地址为A')
+    B->>B: 创建Peer Reflexive候选A''
+    B->>NAT_B: STUN绑定响应
+    NAT_B->>NAT_A: STUN绑定响应
+    NAT_A->>A: STUN绑定响应
+    A->>A: 从响应创建自身的Peer Reflexive候选A''
+    A->>A: 创建新的检查对 (A'', B')
+
+    B->>NAT_B: STUN绑定请求 (目标: A')
+    NAT_B->>NAT_A: STUN绑定请求 (源地址变为B')
+    NAT_A->>A: STUN绑定请求 (源地址为B')
+    A->>A: 创建Peer Reflexive候选B''
+    A->>NAT_A: STUN绑定响应
+    NAT_A->>NAT_B: STUN绑定响应
+    NAT_B->>B: STUN绑定响应
+    B->>B: 从响应创建自身的Peer Reflexive候选B''
+
+    Note over A,B: 更新候选对和继续检查
+    A->>A: 更新检查列表，包括(A'', B'')
+    B->>B: 更新检查列表，包括(A'', B'')
+
+    Note over A,B: 选择最佳路径
+    A->>NAT_A: 使用(A'', B'')进行通信
+    NAT_A->>NAT_B: 转发通信
+    NAT_B->>B: 转发通信
+    B->>NAT_B: 使用(A'', B'')进行通信
+    NAT_B->>NAT_A: 转发通信
+    NAT_A->>A: 转发通信
+
+    Note over A,B: NAT穿透完成，建立直接通信路径
