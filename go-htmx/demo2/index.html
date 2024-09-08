@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX Trigger Demo</title>
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <style>
+        .demo-section {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 5px;
+            background-color: #f0f0f0;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>HTMX Trigger Demo</h1>
+
+    <div class="demo-section">
+        <h2>Click Trigger</h2>
+        <button hx-get="/api/click" hx-trigger="click" hx-target="#click-result">
+            Click me
+        </button>
+        <div id="click-result" class="result"></div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Hover Trigger</h2>
+        <div hx-get="/api/hover" hx-trigger="mouseenter" hx-target="#hover-result" style="display: inline-block; padding: 10px; background-color: #e0e0e0;">
+            Hover over me
+        </div>
+        <div id="hover-result" class="result"></div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Form Submit Trigger</h2>
+        <form hx-post="/api/submit" hx-trigger="submit" hx-target="#form-result">
+            <input type="text" name="message" placeholder="Enter a message">
+            <button type="submit">Submit</button>
+        </form>
+        <div id="form-result" class="result"></div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Custom Delay Trigger</h2>
+        <input type="text" name="search" 
+               hx-get="/api/search" 
+               hx-trigger="keyup changed delay:500ms" 
+               hx-target="#search-result" 
+               placeholder="Type to search...">
+        <div id="search-result" class="result"></div>
+    </div>
+</body>
+</html>

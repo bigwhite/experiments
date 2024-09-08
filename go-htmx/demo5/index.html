@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX SSE Notifications</title>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+</head>
+<body>
+    <h1>实时通知</h1>
+    <div hx-ext="sse" sse-connect="/events" sse-swap="message">
+        <ul id="notifications">
+            <!-- 通知将在这里动态添加 -->
+        </ul>
+    </div>
+
+    <script>
+        htmx.on("htmx:sseMessage", function(event) {
+            var ul = document.getElementById("notifications");
+            var li = document.createElement("li");
+            li.innerHTML = event.detail.message;
+            ul.insertBefore(li, ul.firstChild);
+        });
+    </script>
+</body>
+</html>

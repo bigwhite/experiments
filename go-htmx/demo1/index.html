@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX Go Example</title>
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <style>
+        .row {
+            margin-bottom: 10px;
+        }
+        button {
+            width: 120px;
+            margin-right: 10px;
+        }
+        .result {
+            display: inline-block;
+            width: 300px;
+            border: 1px solid #ccc;
+            padding: 5px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>HTMX Request Types Demo</h1>
+
+    <div class="row">
+        <button hx-get="/api/get" hx-target="#get-result">GET Request</button>
+        <span id="get-result" class="result"></span>
+    </div>
+    <div class="row">
+        <button hx-post="/api/post" hx-target="#post-result">POST Request</button>
+        <span id="post-result" class="result"></span>
+    </div>
+    <div class="row">
+        <button hx-put="/api/put" hx-target="#put-result">PUT Request</button>
+        <span id="put-result" class="result"></span>
+    </div>
+    <div class="row">
+        <button hx-delete="/api/delete" hx-target="#delete-result">DELETE Request</button>
+        <span id="delete-result" class="result"></span>
+    </div>
+</body>
+</html>

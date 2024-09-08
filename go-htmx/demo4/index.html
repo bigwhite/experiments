@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX Auth Example - Login</title>
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <script>
+        htmx.on('htmx:afterRequest', function(event) {
+            if (event.detail.elt.id === 'login-form') {
+                var xhr = event.detail.xhr;
+                if (xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        localStorage.setItem('auth_token', response.token);
+                        window.location.href = response.redirect;
+                    } else {
+                        document.getElementById('message').innerText = response.message;
+                    }
+                } else {
+                    document.getElementById('message').innerText = "An error occurred. Please try again.";
+                }
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>HTMX Auth Example - Login</h1>
+    <form id="login-form" hx-post="/login" hx-target="#message">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required><br><br>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required><br><br>
+        <button type="submit">Login</button>
+    </form>
+    <div id="message"></div>
+</body>
+</html>

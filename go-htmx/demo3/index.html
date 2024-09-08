@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTMX Swap Demo - All Attributes</title>
+    <script src="https://unpkg.com/htmx.org@2.0.2"></script>
+    <style>
+        .demo-section {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        .content-box {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            min-height: 50px;
+        }
+        .item {
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>HTMX Swap Demo - All Attributes</h1>
+
+    <div class="demo-section">
+        <h2>innerHTML (Default)</h2>
+        <button hx-get="/api/swap/inner" hx-target="#inner-content">
+            Swap innerHTML
+        </button>
+        <div id="inner-content" class="content-box">
+            <p>This is the original content. The entire inner HTML will be replaced.</p>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>outerHTML</h2>
+        <button hx-get="/api/swap/outer" hx-target="#outer-content" hx-swap="outerHTML">
+            Swap outerHTML
+        </button>
+        <div id="outer-content" class="content-box">
+            <p>This entire div will be replaced, including its container.</p>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>textContent</h2>
+        <button hx-get="/api/swap/text" hx-target="#text-content" hx-swap="textContent">
+            Swap textContent
+        </button>
+        <div id="text-content" class="content-box">
+            <p>This <strong>text</strong> will be replaced, but HTML tags will be treated as plain text.</p>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>beforebegin</h2>
+        <button hx-get="/api/swap/before" hx-target="#before-content" hx-swap="beforebegin">
+            Insert before
+        </button>
+        <div id="before-content" class="content-box">
+            <p>New content will be inserted before this div.</p>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>afterbegin</h2>
+        <button hx-get="/api/swap/afterbegin" hx-target="#afterbegin-content" hx-swap="afterbegin">
+            Insert at beginning
+        </button>
+        <div id="afterbegin-content" class="content-box">
+            <p>New content will be inserted at the beginning of this div, before this paragraph.</p>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>beforeend</h2>
+        <button hx-get="/api/swap/beforeend" hx-target="#beforeend-content" hx-swap="beforeend">
+            Insert at end
+        </button>
+        <div id="beforeend-content" class="content-box">
+            <p>New content will be inserted at the end of this div, after this paragraph.</p>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>afterend</h2>
+        <button hx-get="/api/swap/after" hx-target="#after-content" hx-swap="afterend">
+            Insert after
+        </button>
+        <div id="after-content" class="content-box">
+            <p>New content will be inserted after this div.</p>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>delete</h2>
+        <button hx-get="/api/swap/delete" hx-target="#delete-content" hx-swap="delete">
+            Delete content
+        </button>
+        <div id="delete-content" class="content-box">
+            <p>This content will be deleted when the button is clicked.</p>
+        </div>
+    </div>
+</body>
+</html>
