@@ -1,0 +1,18 @@
+graph TD
+    subgraph "Without String Interning"
+        A1["String: 'Hello'"] --> M1["Memory: 'Hello'"]
+        A2["String: 'World'"] --> M2["Memory: 'World'"]
+        A3["String: 'Hello'"] --> M3["Memory: 'Hello'"]
+    end
+    
+    subgraph "With String Interning"
+        B1["String: 'Hello'"] --> N1["Memory: 'Hello'"]
+        B2["String: 'World'"] --> N2["Memory: 'World'"]
+        B3["String: 'Hello'"] --> N1
+    end
+
+    style M1 fill:#f9f,stroke:#333,stroke-width:2px
+    style M2 fill:#bbf,stroke:#333,stroke-width:2px
+    style M3 fill:#f9f,stroke:#333,stroke-width:2px
+    style N1 fill:#f9f,stroke:#333,stroke-width:2px
+    style N2 fill:#bbf,stroke:#333,stroke-width:2px

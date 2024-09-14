@@ -1,0 +1,20 @@
+graph TD
+    A["Make('hello')"] -->|"First call"| B["Handle[string]{ptr1}"]
+    C["Make('hello')"] -->|"Second call"| B
+    D["Make('hello')"] -->|"Third call"| B
+    B -->|"Value()"| E["'hello'"]
+    
+    F["Internal Map"] -->|"Stores"| G["Key: 'hello'"]
+    G -->|"Value"| H["weak.Pointer"]
+    H -->|"Points to"| I["*string"]
+    I -->|"Contains"| J["'hello'"]
+    
+    B -.->|"References"| I
+
+    classDef handle fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef map fill:#ccf,stroke:#333,stroke-width:2px;
+    classDef memory fill:#cfc,stroke:#333,stroke-width:2px;
+    
+    class B handle;
+    class F map;
+    class I memory;
