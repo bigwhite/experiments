@@ -1,0 +1,34 @@
+graph TD
+
+    subgraph GC without Strong Reference
+        A3[Application] -.-x|No Strong Reference| B3[Object in Memory]
+        C3[weak.Pointer] -->|Weak Reference| B3
+        D3[Garbage Collector] -->|Checks| B3
+        D3 -->|Collects| B3
+        B3 -->|Collected| E3[Memory Freed]
+        C3 -->|After GC| F3[Null/Invalid Reference]
+    end
+
+    subgraph GC with Strong Reference
+        A2[Application] -->|Strong Reference| B2[Object in Memory]
+        C2[weak.Pointer] -->|Weak Reference| B2
+        D2[Garbage Collector] -->|Checks| B2
+        D2 -.-x|Cannot Collect| B2
+    end
+
+
+    subgraph Initial Allocation
+        A1[Application] -->|Creates| B1[Object in Memory]
+        A1 -->|Strong Reference| B1
+        A1 -->|Creates| C1[weak.Pointer]
+        C1 -->|Weak Reference| B1
+    end
+
+
+
+    style C1 fill:#f9f,stroke:#333,stroke-width:2px
+    style C2 fill:#f9f,stroke:#333,stroke-width:2px
+    style C3 fill:#f9f,stroke:#333,stroke-width:2px
+    style D2 fill:#bbf,stroke:#333,stroke-width:2px
+    style D3 fill:#bbf,stroke:#333,stroke-width:2px
+    style E3 fill:#fbb,stroke:#333,stroke-width:2px
