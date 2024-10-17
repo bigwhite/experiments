@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./;proto";
+
+// 定义请求和响应消息
+message GreetingRequest {
+    string name = 1;
+}
+
+message GreetingReply {
+    string message = 1;
+}
+
+// 定义服务
+service GreetingService {
+    rpc Greet(GreetingRequest) returns (GreetingReply);
+}
