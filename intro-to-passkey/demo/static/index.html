@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Passkey Demo</title>
+    <style>
+        .container {
+            margin: 20px;
+            padding: 20px;
+            border: 1px solid #ccc;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>注册</h2>
+        <div class="form-group">
+            <input type="text" id="registerUsername" placeholder="用户名">
+            <button onclick="register()">注册 Passkey</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>登录</h2>
+        <div class="form-group">
+            <input type="text" id="loginUsername" placeholder="用户名">
+            <button onclick="login()">Passkey 登录</button>
+        </div>
+    </div>
+
+    <div id="status"></div>
+
+    <script>
+        // 工具函数：将 ArrayBuffer 转换为 Base64URL 字符串
+        function bufferToBase64URL(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let str = '';
+            for (const byte of bytes) {
+                str += String.fromCharCode(byte);
+            }
+            return btoa(str)
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+
+        // 工具函数：将 Base64URL 字符串转换为 ArrayBuffer
+        function base64URLToBuffer(base64URL) {
+            if (!base64URL) {
+                throw new Error('Empty base64URL string');
+            }
+            const base64 = base64URL.replace(/-/g, '+').replace(/_/g, '/');
+            const padLen = (4 - (base64.length % 4)) % 4;
+            const padded = base64.padEnd(base64.length + padLen, '=');
+            const binary = atob(padded);
+            const buffer = new ArrayBuffer(binary.length);
+            const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return buffer;
+        }
+
+        function showStatus(message, isError = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = isError ? 'error' : 'success';
+        }
+
+        // 开始注册
+        async function startRegistration(username) {
+            try {
+                // 1. 从服务器获取注册选项
+                const response = await fetch('/api/register/begin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const responseData = await response.json();
+                
+                // 确保我们使用的是 publicKey 对象
+                const options = responseData.publicKey;
+                if (!options) {
+                    throw new Error('Invalid server response: missing publicKey');
+                }
+
+                // 2. 解码 challenge
+                options.challenge = base64URLToBuffer(options.challenge);
+
+                // 3. 解码 user.id
+                if (options.user && options.user.id) {
+                    options.user.id = base64URLToBuffer(options.user.id);
+                }
+
+                console.log('Processed options:', options); // 调试输出
+
+                // 4. 创建凭证
+                const credential = await navigator.credentials.create({
+                    publicKey: options
+                });
+
+                // 5. 准备发送到服务器的数据
+                const registrationData = {
+                    id: credential.id,
+                    rawId: bufferToBase64URL(credential.rawId),
+                    type: credential.type,
+                    response: {
+                        attestationObject: bufferToBase64URL(credential.response.attestationObject),
+                        clientDataJSON: bufferToBase64URL(credential.response.clientDataJSON)
+                    }
+                };
+
+                // 6. 发送注册数据到服务器
+                const finishResponse = await fetch('/api/register/finish', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(registrationData)
+                });
+
+                if (!finishResponse.ok) {
+                    throw new Error(`Server error: ${finishResponse.status}`);
+                }
+
+                showStatus('注册成功！');
+            } catch (error) {
+                console.error('Registration error:', error);
+                showStatus(`注册失败: ${error.message}`, true);
+            }
+        }
+
+        // 开始登录
+        async function startLogin(username) {
+            try {
+                // 1. 从服务器获取登录选项
+                const response = await fetch('/api/login/begin', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const responseData = await response.json();
+                const options = responseData.publicKey;
+                
+                if (!options) {
+                    throw new Error('Invalid server response: missing publicKey');
+                }
+
+                // 2. 解码 challenge
+                options.challenge = base64URLToBuffer(options.challenge);
+
+                // 3. 解码 allowCredentials
+                if (options.allowCredentials) {
+                    options.allowCredentials = options.allowCredentials.map(credential => ({
+                        ...credential,
+                        id: base64URLToBuffer(credential.id),
+                    }));
+                }
+
+                // 4. 获取凭证
+                const credential = await navigator.credentials.get({
+                    publicKey: options
+                });
+
+                // 5. 准备发送到服务器的数据
+                const loginData = {
+                    id: credential.id,
+                    rawId: bufferToBase64URL(credential.rawId),
+                    type: credential.type,
+                    response: {
+                        authenticatorData: bufferToBase64URL(credential.response.authenticatorData),
+                        clientDataJSON: bufferToBase64URL(credential.response.clientDataJSON),
+                        signature: bufferToBase64URL(credential.response.signature),
+                        userHandle: credential.response.userHandle ? bufferToBase64URL(credential.response.userHandle) : null
+                    }
+                };
+
+                // 6. 发送登录数据到服务器
+                const finishResponse = await fetch('/api/login/finish', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(loginData)
+                });
+
+                if (!finishResponse.ok) {
+                    throw new Error(`Server error: ${finishResponse.status}`);
+                }
+
+                showStatus('登录成功！');
+            } catch (error) {
+                console.error('Login error:', error);
+                showStatus(`登录失败: ${error.message}`, true);
+            }
+        }
+
+        // 注册按钮处理函数
+        function register() {
+            const username = document.getElementById('registerUsername').value;
+            if (!username) {
+                showStatus('请输入用户名', true);
+                return;
+            }
+            startRegistration(username);
+        }
+
+        // 登录按钮处理函数
+        function login() {
+            const username = document.getElementById('loginUsername').value;
+            if (!username) {
+                showStatus('请输入用户名', true);
+                return;
+            }
+            startLogin(username);
+        }
+    </script>
+</body>
+</html>

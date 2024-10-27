@@ -1,0 +1,58 @@
+sequenceDiagram
+    participant U as User
+    participant B as Browser
+    participant O as OS
+    participant A as Authenticator
+    participant S as Server
+
+    rect rgb(200, 250, 220)
+        Note over U,S: Registration Flow
+        U->>B: 输入用户名，点击注册
+        B->>S: POST /register/begin
+        S->>S: 生成挑战(challenge)
+        S-->>B: 返回注册选项(options)
+        
+        Note over B,A: 本地认证流程
+        B->>O: 调用本地API(navigator.credentials.create)
+        O->>O: 检查认证器可用性
+        O->>A: 请求创建凭证
+        A->>O: 请求用户验证
+        O->>U: 提示输入系统密码/生物识别
+        U->>O: 提供身份验证
+        O->>A: 确认用户身份
+        A->>A: 生成公私钥对
+        A->>A: 存储私钥
+        A-->>O: 返回公钥凭证
+        O-->>B: 返回凭证数据
+        
+        B->>S: POST /register/finish
+        S->>S: 验证凭证，存储公钥
+        S-->>B: 注册成功
+        B-->>U: 显示成功信息
+    end
+
+    rect rgb(200, 250, 220)
+        Note over U,S: Authentication Flow
+        U->>B: 输入用户名，点击登录
+        B->>S: POST /login/begin
+        S->>S: 生成挑战(challenge)
+        S->>S: 获取用户公钥
+        S-->>B: 返回认证选项(options)
+        
+        Note over B,A: 本地认证流程
+        B->>O: 调用本地API(navigator.credentials.get)
+        O->>O: 检查认证器可用性
+        O->>A: 请求认证
+        A->>O: 请求用户验证
+        O->>U: 提示输入系统密码/生物识别
+        U->>O: 提供身份验证
+        O->>A: 确认用户身份
+        A->>A: 使用私钥签名challenge
+        A-->>O: 返回签名结果
+        O-->>B: 返回认证数据
+        
+        B->>S: POST /login/finish
+        S->>S: 使用公钥验证签名
+        S-->>B: 认证成功
+        B-->>U: 显示成功信息
+    end
