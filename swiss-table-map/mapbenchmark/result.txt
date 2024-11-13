@@ -1,0 +1,25 @@
+goos: linux
+goarch: amd64
+pkg: demo
+cpu: Intel(R) Xeon(R) Platinum
+                                  │ origin-map.txt │         swiss-table-map.txt          │
+                                  │     sec/op     │    sec/op     vs base                │
+MapIter/Int/12-8                      179.7n ± 10%   190.6n ±  4%        ~ (p=0.436 n=10)
+MapIter/Int/256-8                     4.328µ ±  5%   3.748µ ±  1%  -13.40% (p=0.000 n=10)
+MapIter/Int/8192-8                    137.3µ ±  1%   123.6µ ±  1%   -9.95% (p=0.000 n=10)
+MapAccessHit/Int64/12-8               10.12n ±  2%   10.68n ± 14%   +5.64% (p=0.000 n=10)
+MapAccessHit/Int64/256-8              10.29n ±  3%   11.29n ±  1%   +9.77% (p=0.000 n=10)
+MapAccessHit/Int64/8192-8             25.99n ±  1%   14.93n ±  1%  -42.57% (p=0.000 n=10)
+MapAccessMiss/Int64/12-8              12.39n ± 88%   20.99n ± 50%        ~ (p=0.669 n=10)
+MapAccessMiss/Int64/256-8             13.12n ±  6%   11.34n ±  7%  -13.56% (p=0.000 n=10)
+MapAccessMiss/Int64/8192-8            15.71n ±  1%   14.03n ±  1%  -10.66% (p=0.000 n=10)
+MapAssignGrow/Int64/12-8              607.1n ±  2%   622.6n ±  2%   +2.54% (p=0.000 n=10)
+MapAssignGrow/Int64/256-8             25.98µ ±  3%   23.22µ ±  1%  -10.64% (p=0.000 n=10)
+MapAssignGrow/Int64/8192-8            792.3µ ±  1%   844.1µ ±  1%   +6.54% (p=0.000 n=10)
+MapAssignPreAllocate/Int64/12-8       450.2n ±  2%   409.2n ±  1%   -9.11% (p=0.000 n=10)
+MapAssignPreAllocate/Int64/256-8     10.412µ ±  1%   6.055µ ±  2%  -41.84% (p=0.000 n=10)
+MapAssignPreAllocate/Int64/8192-8     342.4µ ±  1%   232.6µ ±  2%  -32.05% (p=0.000 n=10)
+MapAssignReuse/Int64/12-8             374.2n ±  1%   235.4n ±  2%  -37.07% (p=0.000 n=10)
+MapAssignReuse/Int64/256-8            8.737µ ±  1%   4.716µ ±  4%  -46.03% (p=0.000 n=10)
+MapAssignReuse/Int64/8192-8           296.4µ ±  1%   181.0µ ±  1%  -38.93% (p=0.000 n=10)
+geomean                               1.159µ         984.2n        -15.11%
