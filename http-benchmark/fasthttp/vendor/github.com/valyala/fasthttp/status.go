@@ -1,7 +1,7 @@
 package fasthttp
 
 import (
-	"fmt"
+	"strconv"
 )
 
 const (
@@ -80,7 +80,7 @@ const (
 )
 
 var (
-	statusLines = make([][]byte, statusMessageMax+1)
+	unknownStatusCode = "Unknown Status Code"
 
 	statusMessages = []string{
 		StatusContinue:           "Continue",
@@ -154,32 +154,24 @@ var (
 // StatusMessage returns HTTP status message for the given status code.
 func StatusMessage(statusCode int) string {
 	if statusCode < statusMessageMin || statusCode > statusMessageMax {
-		return "Unknown Status Code"
+		return unknownStatusCode
 	}
 
-	s := statusMessages[statusCode]
-	if s == "" {
-		s = "Unknown Status Code"
+	if s := statusMessages[statusCode]; s != "" {
+		return s
 	}
-	return s
+	return unknownStatusCode
 }
 
-func init() {
-	// Fill all valid status lines
-	for i := 0; i < len(statusLines); i++ {
-		statusLines[i] = []byte(fmt.Sprintf("HTTP/1.1 %d %s\r\n", i, StatusMessage(i)))
+func formatStatusLine(dst []byte, protocol []byte, statusCode int, statusText []byte) []byte {
+	dst = append(dst, protocol...)
+	dst = append(dst, ' ')
+	dst = strconv.AppendInt(dst, int64(statusCode), 10)
+	dst = append(dst, ' ')
+	if len(statusText) == 0 {
+		dst = append(dst, s2b(StatusMessage(statusCode))...)
+	} else {
+		dst = append(dst, statusText...)
 	}
-}
-
-func statusLine(statusCode int) []byte {
-	if statusCode < 0 || statusCode > statusMessageMax {
-		return invalidStatusLine(statusCode)
-	}
-
-	return statusLines[statusCode]
-}
-
-func invalidStatusLine(statusCode int) []byte {
-	statusText := StatusMessage(statusCode)
-	return []byte(fmt.Sprintf("HTTP/1.1 %d %s\r\n", statusCode, statusText))
+	return append(dst, strCRLF...)
 }
