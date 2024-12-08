@@ -7,7 +7,7 @@ type YourSlice[T comparable] = MySlice[T]
 
 func main() {
 	// 使用int类型实例化MySlice
-	intSlice := YourSlice[int]{1, 2, 3, 4, 5}
+	intSlice := MySlice[int]{1, 2, 3, 4, 5}
 	fmt.Println("Int Slice:", intSlice)
 
 	intsliceSlice := YourSlice[[]int]{
