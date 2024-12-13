@@ -1,4 +1,3 @@
-// main.go
 package main
 
 import (
@@ -21,8 +20,6 @@ func main() {
 	mi.M2()
 
 	// 通过导出的函数获取myStruct类型变量
-	ms2 := mypackage.NewMyStruct2("Hello2")
-	mi = ms2 // compile error: mypackage.myStruct does not implement MyInterface
-	ms2.M1()
-	ms2.M2()
+	//ms2 := mypackage.NewMyStruct2("Hello2")
+	//mi = ms2 // compile error: mypackage.myStruct does not implement MyInterface
 }
