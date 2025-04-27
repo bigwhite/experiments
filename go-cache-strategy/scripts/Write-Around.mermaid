@@ -1,0 +1,24 @@
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+
+    par Write Operation
+        App->>DB: Write Data(key, value)
+        DB-->>App: Write Ack
+        Note right of App: Cache is NOT involved in write.
+    and Read Operation (Cache-Aside)
+        App->>Cache: Request Data(key)
+        alt Cache Hit
+            Cache-->>App: Return Data
+        else Cache Miss
+            Cache-->>App: Not Found
+            App->>DB: Read Data(key)
+            DB-->>App: Return Data
+            App->>Cache: Write Data(key, value, ttl) # Populate cache on read
+            App-->>App: Process Data
+            Note right of App: Return Data to Caller
+        end
+    end
+```

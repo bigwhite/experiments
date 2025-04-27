@@ -1,0 +1,16 @@
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+
+    App->>Cache: Request Data(key)
+    alt Cache Hit
+        Cache-->>App: Return Data
+    else Cache Miss
+        Cache->>DB: Read Data(key) # Cache triggers load
+        DB-->>Cache: Return Data
+        Cache->>Cache: Store Data(key, value, ttl)
+        Cache-->>App: Return Data
+    end
+```

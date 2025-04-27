@@ -1,0 +1,26 @@
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant Queue as Write Queue
+    participant Worker as Async DB Worker
+    participant DB as Database
+
+    App->>Cache: Write Data(key, value, ttl)
+    Cache-->>App: Success (Immediate)
+    Cache->>Queue: Enqueue Write Op({key, value})
+
+    loop Async Processing
+        Worker->>Queue: Dequeue Write Op(s)
+        alt QueueNotEmpty
+            Worker->>DB: Write Data Batch/Single
+            DB-->>Worker: Write Ack/Error
+            Note right of Worker: Handles DB write result (retry/log)
+        else QueueEmpty
+            Worker->>Worker: Wait/Sleep
+        end
+    end
+```
+
+

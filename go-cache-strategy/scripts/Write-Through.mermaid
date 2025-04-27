@@ -1,0 +1,22 @@
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+
+    App->>Cache: Write Data(key, value, ttl) # Option 1: Cache first
+    alt Write Cache Success
+        Cache->>DB: Write Data(key, value)
+        alt Write DB Success
+            DB-->>Cache: DB Write Ack
+            Cache-->>App: Overall Success
+        else Write DB Failure
+            DB-->>Cache: DB Write Error
+            Cache-->>App: Overall Failure (Cache might rollback/invalidate)
+        end
+    else Write Cache Failure
+        Cache-->>App: Overall Failure
+    end
+    Note over App,DB: OR App writes to DB first, then Cache. Both must succeed conceptually.
+```
+

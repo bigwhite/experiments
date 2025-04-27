@@ -1,0 +1,20 @@
+
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Cache
+    participant DB as Database
+
+    App->>Cache: Request Data(key)
+    alt Cache Hit
+        Cache-->>App: Return Data
+    else Cache Miss
+        Cache-->>App: Not Found
+        App->>DB: Read Data(key)
+        DB-->>App: Return Data
+        App->>Cache: Write Data(key, value, ttl)
+        Cache-->>App: Write Ack (Optional)
+        App-->>App: Process Data
+        Note right of App: Return Data to Caller
+    end
+```
