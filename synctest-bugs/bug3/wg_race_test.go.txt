@@ -1,0 +1,39 @@
+package main_test
+
+import (
+	"context"
+	"sync"
+	"testing"
+	"testing/synctest"
+)
+
+func TestSyncTest_Wait_Group(t *testing.T) {
+	for range 1000 {
+		doSyncTestWithChanel(t)
+	}
+}
+
+func doSyncTestWithChanel(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+
+		for range 100 {
+			go func() {
+				simpleWait(ctx)
+			}()
+		}
+
+		synctest.Wait()
+		cancel()
+	})
+}
+
+func simpleWait(ctx context.Context) {
+	var wg sync.WaitGroup
+	for range 3 {
+		wg.Go(func() {
+			<-ctx.Done()
+		})
+	}
+	wg.Wait()
+}
