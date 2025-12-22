@@ -1,0 +1,14 @@
+holiday-promo:
+  # 定义开关的两个状态：启用(true) 和 禁用(false)
+  variations:
+    enabled: true
+    disabled: false
+  
+  # 默认情况下，对所有人禁用
+  defaultRule:
+    variation: disabled
+    
+  # 特殊规则：只对用户 "user-123" 启用
+  targeting:
+    - query: key eq "user-123"
+      variation: enabled

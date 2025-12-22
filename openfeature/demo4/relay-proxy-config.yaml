@@ -1,0 +1,17 @@
+# HTTP 服务配置
+listen: 1031
+
+# 轮询间隔 (毫秒)
+pollingInterval: 1000
+
+# 如果检索器出错是否启动
+startWithRetrieverError: false
+
+# 配置文件检索器
+retriever:
+  kind: file
+  path: flags.yaml
+
+# 日志导出器（可选）
+exporter:
+  kind: log
