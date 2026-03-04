@@ -1,0 +1,11 @@
+# buf.gen.yaml
+version: v1
+plugins:
+  # 插件 1：生成基础的 Go struct 代码
+  - plugin: buf.build/protocolbuffers/go:v1.36.11
+    out: gen/go
+    opt: paths=source_relative
+  # 插件 2：生成 gRPC 客户端/服务端接口代码
+  - plugin: buf.build/grpc/go:v1.6.1
+    out: gen/go
+    opt: paths=source_relative

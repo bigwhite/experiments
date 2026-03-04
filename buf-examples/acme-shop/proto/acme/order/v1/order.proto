@@ -1,0 +1,25 @@
+
+// proto/acme/order/v1/order.proto
+syntax = "proto3";
+
+package acme.order.v1;
+
+// go_package 是必须的，它告诉工具生成的 Go 代码最终属于哪个 import path
+option go_package = "github.com/acme/shop/gen/go/acme/order/v1;orderv1";
+
+import "google/protobuf/timestamp.proto";
+
+// 订单服务接口定义
+service OrderService {
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {}
+}
+
+message CreateOrderRequest {
+  string customer_id = 1;
+  double amount = 2;
+}
+
+message CreateOrderResponse {
+  string order_id = 1;
+  google.protobuf.Timestamp created_at = 2;
+}
