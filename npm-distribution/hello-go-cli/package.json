@@ -1,0 +1,12 @@
+{
+  "name": "hello-go-cli-demo",
+  "version": "0.1.0",
+  "description": "A hello world CLI written in Go, shipped via npm",
+  "bin": { "hello-go": "run.js" },
+  "files": ["run.js", "bin/"],
+  "os": ["darwin", "linux", "win32"],
+  "cpu": ["x64", "arm64"],
+  "engines": { "node": ">=16" },
+  "license": "MIT"
+}
+
