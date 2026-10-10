@@ -6,7 +6,7 @@ version: "2"
 
 services:
   kafka:
-    image: docker.io/bitnami/kafka:3.6
+    image: docker.io/soldevelo/kafka:3.6
     network_mode: "host"
     #ports:
       #- "9092:9092"
