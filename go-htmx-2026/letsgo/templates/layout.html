@@ -1,0 +1,59 @@
+{{define "page"}}<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Let's Go 植物记录</title>
+  <!-- 让 422 响应也参与替换，这样表单校验错误可以直接显示 -->
+  <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true},{"code":"[45]..","swap":false,"error":true}]}'>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
+  <style>
+    body{font-family:system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem;line-height:1.6}
+    [x-cloak]{display:none!important}
+    ul{padding-left:1.2rem} li{margin:.4rem 0}
+    .badge{padding:.1rem .5rem;border-radius:999px;font-size:.85rem;background:#e5e7eb}
+    .良好{background:#bbf7d0}.一般{background:#fde68a}.枯萎{background:#fecaca}
+    #toast{min-height:1.5rem;color:#065f46;margin:.5rem 0}
+    .err{color:#b91c1c}
+    input,textarea,button{font:inherit;margin:.15rem 0}
+    .htmx-request{opacity:.5}
+  </style>
+</head>
+<body>
+  <h1>🌱 Let's Go 植物记录</h1>
+  <div id="toast"></div>
+
+  <input type="search" name="q" value="{{.Q}}" placeholder="搜索植物，比如：薄荷"
+         hx-get="/plants"
+         hx-trigger="input changed delay:300ms, search"
+         hx-target="#plant-list"
+         hx-push-url="true">
+
+  <div id="plant-list">{{template "plant-list" .}}</div>
+
+  <div id="detail"></div>
+
+  <hr>
+  <button hx-get="/secure" hx-target="#secure-result">模拟：请求受保护内容</button>
+  <span id="secure-result"></span>
+</body>
+</html>{{end}}
+
+{{define "plant-list"}}<ul>
+{{range .Plants}}{{template "plant-item" .}}
+{{else}}<li>没有找到匹配的植物</li>
+{{end}}</ul>{{end}}
+
+{{define "plant-item"}}<li id="plant-{{.ID}}">
+  <strong>{{.Name}}</strong> {{template "health-badge" .}}
+  <button hx-get="/plants/{{.ID}}" hx-target="#detail">查看</button>
+  <span x-data="{ open: false }">
+    <button x-show="!open" @click="open = true">删除</button>
+    <span x-show="open" x-cloak>
+      确定删除？
+      <button hx-delete="/plants/{{.ID}}" hx-target="#plant-{{.ID}}" hx-swap="outerHTML">确认</button>
+      <button @click="open = false">取消</button>
+    </span>
+  </span>
+</li>{{end}}

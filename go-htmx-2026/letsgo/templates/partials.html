@@ -1,0 +1,43 @@
+{{define "health-badge"}}<span id="health-{{.ID}}" class="badge {{.Health}}">{{.Health}}</span>{{end}}
+
+{{define "health-badge-oob"}}<span id="health-{{.ID}}" class="badge {{.Health}}" hx-swap-oob="true">{{.Health}}</span>{{end}}
+
+{{define "health-badge-detail-oob"}}<span id="detail-health-{{.ID}}" class="badge {{.Health}}" hx-swap-oob="true">{{.Health}}</span>{{end}}
+
+{{define "toast"}}<div id="toast" hx-swap-oob="true">{{.}}</div>{{end}}
+
+{{define "error-text"}}<span class="err">{{.}}</span>{{end}}
+
+{{define "toast-inline"}}{{.}}{{end}}
+
+{{define "detail"}}<section>
+  <h2>{{.Name}} <span id="detail-health-{{.ID}}" class="badge {{.Health}}">{{.Health}}</span></h2>
+  <div>
+    <button hx-post="/plants/{{.ID}}/health" hx-vals='{"level":"良好"}' hx-swap="none">标记：良好</button>
+    <button hx-post="/plants/{{.ID}}/health" hx-vals='{"level":"一般"}' hx-swap="none">标记：一般</button>
+    <button hx-post="/plants/{{.ID}}/health" hx-vals='{"level":"枯萎"}' hx-swap="none">标记：枯萎</button>
+  </div>
+  <form hx-post="/plants/{{.ID}}/events" hx-target="#timeline"
+        hx-on::after-request="if (event.detail.successful) this.reset()">
+    <input name="event_type" placeholder="事件类型：浇水 / 换盆 / 施肥">
+    <br>
+    <textarea name="notes" placeholder="备注（可选）" rows="2" cols="40"></textarea>
+    <br>
+    <button type="submit">记录</button>
+  </form>
+  <h3>时间线</h3>
+  <div id="timeline" hx-get="/plants/{{.ID}}/timeline" hx-trigger="load">加载中……</div>
+</section>{{end}}
+
+{{define "timeline"}}<ul>
+{{range .Entries}}<li>{{.At.Format "01-02 15:04"}} · <strong>{{.Type}}</strong>{{if .Notes}}：{{.Notes}}{{end}}</li>
+{{else}}<li>还没有记录</li>
+{{end}}</ul>{{end}}
+
+{{define "login"}}<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>登录</title></head>
+<body style="font-family:system-ui;max-width:420px;margin:3rem auto">
+  <h1>请先登录</h1>
+  <p>（演示：点击按钮即写入 session Cookie）</p>
+  <form method="post" action="/login"><button type="submit">登录</button></form>
+</body></html>{{end}}
